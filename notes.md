@@ -17,7 +17,7 @@ vlc_module_begin ()
 vlc_module_end ()
 ```
 
-This is a serie of macro calls to define this entry function:
+This is a serie of macro calls (defined in `include/vlc_plugin.h`) to generate this entry function:
 
 ```C
 int vlc_entry__MODULE_NAME (vlc_set_cb, void *); int vlc_entry__MODULE_NAME (vlc_set_cb vlc_set, void *opaque) { module_t *module; module_config_t *config = ((void*)0); if (vlc_set (opaque, ((void*)0), VLC_MODULE_CREATE, &module)) goto error; if (vlc_set (opaque, module, VLC_MODULE_NAME, ("modules/demux/wav.c"))) goto error;·
@@ -63,3 +63,21 @@ To create the corresponding function in Rust, we need to export a function recei
 ```C
 EXTERN_SYMBOL typedef int (*vlc_set_cb) (void *, void *, int, ...);
 ```
+
+Place the built plugin in `VLC.app/Contents/MacOS/plugins/` (OSX only, of course).
+
+To verify that the plugin is loaded, run:
+
+```
+./VLC.app/Contents/MacOS/VLC -vvv --list --reset-plugins-cache
+```
+
+You should see this on one line: `inrustwetrust          FLV demuxer written in Rust`
+
+To play a file with the new plugin, run:
+
+```
+./VLC.app/Contents/MacOS/VLC -vvv --reset-plugins-cache ./zeldaHQ.flv
+```
+
+This will first call the `open` function passed as callback.
