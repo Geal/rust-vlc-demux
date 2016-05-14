@@ -1,6 +1,7 @@
 #![feature(lang_items)]
 #![feature(start)]
 #![no_std]
+#![allow(non_camel_case_types, dead_code)]
 
 mod vlc;
 
