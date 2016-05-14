@@ -88,7 +88,8 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
 fn open(obj: *mut c_void) -> c_int {
   let mut buf: *const uint8_t = 0 as *const uint8_t;
   //unsafe { let sz = stream_Peek(obj, buf as *mut *const u8, 2); }
-  unsafe { vlc_Log(obj, 0, b"inrustwetrust\0".as_ptr(), b"rustdemux.rs\0".as_ptr(), line!(), b"open\0".as_ptr(), b"POUET\0".as_ptr()); }
+  unsafe { vlc_Log(obj, 0, b"inrustwetrust\0".as_ptr(), b"inrustwetrust.rs".as_ptr(),
+    0, b"<>\0".as_ptr(), "in rust function OPEN %d\n".as_ptr(), 42); }
   //unsafe { let sz = stream_Peek(obj, &mut buf, 2); }
   //panic!("IN OPEN");
   -1
