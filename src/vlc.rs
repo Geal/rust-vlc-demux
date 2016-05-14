@@ -1,3 +1,5 @@
+use libc::{uint8_t, size_t, ssize_t, c_void};
+
 #[repr(i32)]
 pub enum VLCModuleProperties {
     VLC_MODULE_CREATE = 0,
@@ -35,3 +37,10 @@ pub enum VLCModuleProperties {
     VLC_CONFIG_LIST_CB,
 }
 
+type stream_t = c_void;
+
+#[link(name = "vlccore")]
+extern {
+  //ssize_t stream_Peek(stream_t *, const uint8_t **, size_t)
+  pub fn stream_Peek(stream: *mut stream_t, buf: *mut *const uint8_t, size: size_t) -> ssize_t;
+}

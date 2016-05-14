@@ -81,3 +81,12 @@ To play a file with the new plugin, run:
 ```
 
 This will first call the `open` function passed as callback.
+
+# Importing functions from libvlccore
+
+copy `VLC.app/Contents/MacOS/lib/libvlccore.8.dylib` to `target/debug/libvlccore.dylib` and build the project.
+Update the libvlccore loading path like this:
+
+```
+install_name_tool -change "@loader_path/lib/libvlccore.8.dylib" "@loader_path/../lib/libvlccore.8.dylib" target/debug/librustdemux.dylib
+```

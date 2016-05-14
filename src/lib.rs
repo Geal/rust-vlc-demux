@@ -7,7 +7,7 @@ mod vlc;
 extern crate libc;
 use libc::{size_t,c_int,c_void};
 
-use vlc::VLCModuleProperties;
+use vlc::{VLCModuleProperties,stream_Peek};
 
 //static int Open ( vlc_object_t * );
 //static void Close( vlc_object_t * );
