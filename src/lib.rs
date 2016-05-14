@@ -5,9 +5,9 @@
 mod vlc;
 
 extern crate libc;
-use libc::{size_t,c_int,c_void};
+use libc::{size_t,c_int,c_void,uint8_t};
 
-use vlc::{VLCModuleProperties,stream_Peek};
+use vlc::{VLCModuleProperties,stream_Peek, vlc_Log};
 
 //static int Open ( vlc_object_t * );
 //static void Close( vlc_object_t * );
@@ -86,7 +86,12 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
 }
 
 fn open(obj: *mut c_void) -> c_int {
-  panic!("IN OPEN");
+  let mut buf: *const uint8_t = 0 as *const uint8_t;
+  //unsafe { let sz = stream_Peek(obj, buf as *mut *const u8, 2); }
+  unsafe { vlc_Log(obj, 0, b"inrustwetrust\0".as_ptr(), b"rustdemux.rs\0".as_ptr(), line!(), b"open\0".as_ptr(), b"POUET\0".as_ptr()); }
+  //unsafe { let sz = stream_Peek(obj, &mut buf, 2); }
+  //panic!("IN OPEN");
+  -1
 }
 
 fn close(obj: *mut c_void) {

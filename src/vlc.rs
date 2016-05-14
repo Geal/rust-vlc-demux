@@ -1,4 +1,4 @@
-use libc::{uint8_t, size_t, ssize_t, c_void};
+use libc::{uint8_t, size_t, ssize_t, c_void, c_int, c_uint};
 
 #[repr(i32)]
 pub enum VLCModuleProperties {
@@ -37,10 +37,18 @@ pub enum VLCModuleProperties {
     VLC_CONFIG_LIST_CB,
 }
 
-type stream_t = c_void;
+type stream_t     = c_void;
+type vlc_object_t = c_void;
 
 #[link(name = "vlccore")]
 extern {
   //ssize_t stream_Peek(stream_t *, const uint8_t **, size_t)
   pub fn stream_Peek(stream: *mut stream_t, buf: *mut *const uint8_t, size: size_t) -> ssize_t;
+  //VLC_API void vlc_Log(vlc_object_t *obj, int prio, const char *module,
+  //                   const char *file, unsigned line, const char *func,
+  //                   const char *format, ...) VLC_FORMAT(7, 8); 
+
+  pub fn vlc_Log(obj: *mut vlc_object_t, priority: c_int, module: *const uint8_t, file: *const uint8_t,
+    line: c_uint, func: *const uint8_t, format: *const uint8_t, ...);
+
 }
