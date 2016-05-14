@@ -3,7 +3,7 @@
 #![no_std]
 
 extern crate libc;
-use libc::size_t;
+use libc::{size_t,c_int,c_void};
 
 //static int Open ( vlc_object_t * );
 //static void Close( vlc_object_t * );
@@ -18,10 +18,12 @@ use libc::size_t;
 
 //EXTERN_SYMBOL typedef int (*vlc_set_cb) (void *, void *, int, ...);
 
+//type vlc_set_cb = FnOnce(*mut c_void, *mut c_void, c_int, ...) -> c_int;
 
 #[no_mangle]
-pub extern fn vlc_entry__3_0_0a(source_length: size_t) {
+pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_void, *mut c_void, c_int, ...) -> c_int,
+  opaque: *mut c_void) -> c_int {
 
-
+ -1
 }
 
