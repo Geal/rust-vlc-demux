@@ -65,6 +65,9 @@ EXTERN_SYMBOL typedef int (*vlc_set_cb) (void *, void *, int, ...);
 ```
 
 Place the built plugin in `VLC.app/Contents/MacOS/plugins/` (OSX only, of course).
+Otherwise, you can see where plugins are stored by looking in the output for "recursively browsing". In my case, this is in "~/vlc/src/.libs/vlc/plugins".
+
+Don't forget to make it end with "_plugin.so" (or "_plugin.dylib" on OSX)! For example, if your file is named "libflv.so", name it "libflv_plugin.so".
 
 To verify that the plugin is loaded, run:
 
