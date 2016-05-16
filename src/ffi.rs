@@ -1,4 +1,4 @@
-use libc::{uint8_t, size_t, ssize_t, c_void, c_int, c_uint, c_char};
+use libc::{uint8_t, uint64_t, size_t, ssize_t, c_void, c_int, c_uint, c_char};
 
 #[repr(i32)]
 pub enum VLCModuleProperties {
@@ -97,7 +97,12 @@ extern {
   pub fn stream_Peek(stream: *mut stream_t, buf: *mut *const uint8_t, size: size_t) -> ssize_t;
   //VLC_API void vlc_Log(vlc_object_t *obj, int prio, const char *module,
   //                   const char *file, unsigned line, const char *func,
-  //                   const char *format, ...) VLC_FORMAT(7, 8); 
+  //                   const char *format, ...) VLC_FORMAT(7, 8);
+
+  // https://www.videolan.org/developers/vlc/doc/doxygen/html/group__stream.html
+  pub fn stream_Read(stream: *mut stream_t, buf: *const c_void, size: size_t) -> ssize_t;
+  // https://www.videolan.org/developers/vlc/doc/doxygen/html/group__stream.html
+  pub fn stream_Tell(stream: *mut stream_t) -> uint64_t;
 
   //FIXME: the actual vlc_Log does not the one defined in include/vlc_messages.h, why?
   //pub fn vlc_Log(obj: *mut vlc_object_t, priority: c_int, module: *const uint8_t, file: *const uint8_t,
