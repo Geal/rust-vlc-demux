@@ -4,13 +4,14 @@
 #![allow(non_camel_case_types, dead_code)]
 
 mod vlc;
+mod ffi;
 mod traits;
 mod types;
 
 extern crate libc;
 use libc::{size_t, c_int, c_char, c_void, uint8_t};
 
-use vlc::{VLCModuleProperties, stream_Peek, vlc_Log};
+use vlc::{VLCModuleProperties, stream_Peek, vlc_Log, vlc_object_t, demux_t};
 use core::mem::transmute;
 
 pub use traits::*;
@@ -61,7 +62,7 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
   }
 
   unsafe {
-    let p_open: extern "C" fn(*mut c_void) -> c_int = transmute(open as extern "C" fn(_) -> c_int);
+    let p_open: extern "C" fn(*mut demux_t) -> c_int = transmute(open as extern "C" fn(_) -> c_int);
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CB_OPEN as i32, p_open) != 0 {
       panic!("cannot set module open callback");
       return -1;
@@ -69,7 +70,7 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
   }
 
   unsafe {
-    let p_close: extern "C" fn(*mut c_void) = transmute(close as extern "C" fn(_));
+    let p_close: extern "C" fn(*mut demux_t) = transmute(close as extern "C" fn(_));
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CB_CLOSE as i32, p_close) != 0 {
       panic!("cannot set module close callback");
       return -1;
@@ -79,16 +80,22 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
  0
 }
 
-extern "C" fn open(obj: *mut c_void) -> c_int {
-  let mut buf: *const uint8_t = 0 as *const uint8_t;
-  //unsafe { let sz = stream_Peek(obj, buf as *mut *const u8, 2); }
-  unsafe { vlc_Log(obj, 0, b"inrustwetrust\0".as_ptr(), b"inrustwetrust.rs".as_ptr(),
-    0, b"<>\0".as_ptr(), "in rust function OPEN %d\n".as_ptr(), 42); }
-  //unsafe { let sz = stream_Peek(obj, &mut buf, 2); }
-  //panic!("IN OPEN");
+extern "C" fn open(obj: *mut demux_t) -> c_int {
+  unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), b"inrustwetrust.rs".as_ptr(),
+    0, b"open\0".as_ptr(), "in rust function before stream_Peek %d\n\0".as_ptr(), 42); }
+  unsafe {
+    let sl = stream_Peek((*obj).s, 12);
+    //panic!("GOT SLICE: {:?}", sl);
+    vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), b"inrustwetrust.rs".as_ptr(),
+      0, b"<>\0".as_ptr(), "got slice: %s\n\0".as_ptr(), sl.as_ptr());
+  panic!("IN OPEN");
+  }
+
+  unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), b"inrustwetrust.rs".as_ptr(),
+    0, b"open\0".as_ptr(), "in rust function OPEN %d\n".as_ptr(), 42); }
   -1
 }
 
-extern "C" fn close(obj: *mut c_void) {
+extern "C" fn close(obj: *mut demux_t) {
   panic!("IN CLOSE");
 }

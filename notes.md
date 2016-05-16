@@ -93,3 +93,11 @@ Update the libvlccore loading path like this:
 ```
 install_name_tool -change "@loader_path/lib/libvlccore.8.dylib" "@loader_path/../lib/libvlccore.8.dylib" target/debug/librustdemux.dylib
 ```
+
+# Defining the FFI interface
+
+Taking a bit of inspiration from https://github.com/sfackler/rust-openssl :
+- the raw structures and C API is (for now) in `src/ffi.rs` and the actual Rust API is in `src/vlc.rs`.
+- VLC uses an object-like construction in C, with everything inheriting from `vlc_object_t` through the `VLC_COMMON_MEMBERS` macro
+- write wrappers for the C functions to make them more manageable. Example: `stream_Peek` takes a mutable reference to a pointer to a byte array, an expected size, and returns a size (possibly negative in case of error). The Rust-like `stream_Peek` will take a size as argument, and return (if successful) an immutable slice
+- all new VLC objects and structures that we do not need to implement will be represented as opaque pointers. Example: `pub type module_t = c_void;`
