@@ -3,13 +3,16 @@
 #![no_std]
 #![allow(non_camel_case_types, dead_code)]
 
+extern crate nom;
+extern crate flavors;
+
 mod vlc;
 mod ffi;
 mod traits;
 mod types;
 
 extern crate libc;
-use libc::{size_t, c_int, c_char, c_void, uint8_t};
+use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t};
 
 use vlc::{VLCModuleProperties, stream_Peek, vlc_Log, vlc_object_t, demux_t};
 use core::mem::transmute;
@@ -83,9 +86,31 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
 extern "C" fn open(obj: *mut demux_t) -> c_int {
   unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function before stream_Peek %d\n\0".as_ptr(), 42); }
   unsafe {
-    let sl = stream_Peek((*obj).s, 12);
+    let sl = stream_Peek((*obj).s, 9);
     //panic!("GOT SLICE: {:?}", sl);
     vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "got slice: %s\n\0".as_ptr(), sl.as_ptr());
+
+    match flavors::parser::header(sl) {
+      nom::IResult::Done(i,h) => {
+        vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "FOUND FLV FILE version: %d\n\0".as_ptr(), h.version as c_uint);
+        if h.audio {
+          vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "has audio\0".as_ptr());
+        }
+        if h.video {
+          vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "has video\0".as_ptr());
+        }
+      },
+      nom::IResult::Error(_) => {
+        vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "parsing error\0".as_ptr());
+      },
+      nom::IResult::Incomplete(nom::Needed::Size(s)) => {
+        vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "Incomplete(%d)\0".as_ptr(), s as c_uint);
+      }
+      nom::IResult::Incomplete(nom::Needed::Unknown) => {
+        vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "Incomplete\0".as_ptr());
+      }
+
+    }
   //panic!("IN OPEN");
   }
 
