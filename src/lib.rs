@@ -20,6 +20,19 @@ use core::mem::transmute;
 pub use traits::*;
 pub use types::*;
 
+macro_rules! vlc_Log {
+  ($demux:expr, $priority:expr, $module:expr, $format:expr) => {{
+    unsafe {
+      vlc_Log($demux as *mut vlc_object_t, $priority, $module.as_ptr(), $format.as_ptr())
+    }
+  }};
+  ($demux:expr, $priority:expr, $module:expr, $format:expr, $($args:expr),*) => {{
+    unsafe {
+      vlc_Log($demux as *mut vlc_object_t, $priority, $module.as_ptr(), $ format.as_ptr(), $($args),*)
+    }
+  }};
+}
+
 #[no_mangle]
 pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_void, c_int, ...) -> c_int,
   opaque: *mut c_void) -> c_int {
@@ -84,29 +97,29 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
 }
 
 extern "C" fn open(p_demux: *mut demux_t) -> c_int {
-  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function before stream_Peek %d\n\0".as_ptr(), 42); }
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in rust function before stream_Peek %d\n\0", 42);
   unsafe {
     let sl = stream_Peek((*p_demux).s, 9);
     //panic!("GOT SLICE: {:?}", sl);
-    vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "got slice: %s\n\0".as_ptr(), sl.as_ptr());
+    vlc_Log!(p_demux, 0, b"inrustwetrust\0", "got slice: %s\n\0", sl.as_ptr());
 
     match flavors::parser::header(sl) {
       nom::IResult::Error(_) => {
-        vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "parsing error\0".as_ptr());
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "parsing error\0");
       },
       nom::IResult::Incomplete(nom::Needed::Size(s)) => {
-        vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "Incomplete(%d)\0".as_ptr(), s as c_uint);
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "Incomplete(%d)\0", s as c_uint);
       }
       nom::IResult::Incomplete(nom::Needed::Unknown) => {
-        vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "Incomplete\0".as_ptr());
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "Incomplete\0");
       },
       nom::IResult::Done(i,h) => {
-        vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "FOUND FLV FILE version: %d\n\0".as_ptr(), h.version as c_uint);
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "FOUND FLV FILE version: %d\n\0", h.version as c_uint);
         if h.audio {
-          vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "has audio\0".as_ptr());
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "has audio\0");
         }
         if h.video {
-          vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "has video\0".as_ptr());
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "has video\0");
         }
 
         (*p_demux).pf_demux   = Some(demux);
@@ -120,20 +133,20 @@ extern "C" fn open(p_demux: *mut demux_t) -> c_int {
   //panic!("IN OPEN");
   }
 
-  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function OPEN %d\n".as_ptr(), 42); }
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in rust function OPEN %d\n", 42);
   -1
 }
 
 extern "C" fn close(p_demux: *mut demux_t) {
-  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in CLOSE\n".as_ptr()); }
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in CLOSE\n");
 }
 
 unsafe extern "C" fn demux(p_demux: *mut demux_t) -> c_int {
-  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in DEMUX\n".as_ptr()); }
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in DEMUX\n");
   -1
 }
 
 unsafe extern "C" fn control(p_demux: *mut demux_t, i_query: c_int, args: *const va_list) -> c_int {
-  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in CONTROL\n".as_ptr()); }
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in CONTROL\n");
   -1
 }
