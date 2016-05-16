@@ -2,7 +2,7 @@ use libc::{uint8_t, size_t, ssize_t, c_void, c_int, c_uint};
 use core::mem::transmute;
 use core::slice::from_raw_parts;
 
-pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t};
+pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list};
 
 use ffi::{self, stream_t};
 

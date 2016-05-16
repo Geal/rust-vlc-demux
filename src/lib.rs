@@ -14,7 +14,7 @@ mod types;
 extern crate libc;
 use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t};
 
-use vlc::{VLCModuleProperties, stream_Peek, vlc_Log, vlc_object_t, demux_t};
+use vlc::{VLCModuleProperties, stream_Peek, vlc_Log, vlc_object_t, demux_t, va_list};
 use core::mem::transmute;
 
 pub use traits::*;
@@ -83,41 +83,57 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
  0
 }
 
-extern "C" fn open(obj: *mut demux_t) -> c_int {
-  unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function before stream_Peek %d\n\0".as_ptr(), 42); }
+extern "C" fn open(p_demux: *mut demux_t) -> c_int {
+  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function before stream_Peek %d\n\0".as_ptr(), 42); }
   unsafe {
-    let sl = stream_Peek((*obj).s, 9);
+    let sl = stream_Peek((*p_demux).s, 9);
     //panic!("GOT SLICE: {:?}", sl);
-    vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "got slice: %s\n\0".as_ptr(), sl.as_ptr());
+    vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "got slice: %s\n\0".as_ptr(), sl.as_ptr());
 
     match flavors::parser::header(sl) {
-      nom::IResult::Done(i,h) => {
-        vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "FOUND FLV FILE version: %d\n\0".as_ptr(), h.version as c_uint);
-        if h.audio {
-          vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "has audio\0".as_ptr());
-        }
-        if h.video {
-          vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "has video\0".as_ptr());
-        }
-      },
       nom::IResult::Error(_) => {
-        vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "parsing error\0".as_ptr());
+        vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "parsing error\0".as_ptr());
       },
       nom::IResult::Incomplete(nom::Needed::Size(s)) => {
-        vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "Incomplete(%d)\0".as_ptr(), s as c_uint);
+        vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "Incomplete(%d)\0".as_ptr(), s as c_uint);
       }
       nom::IResult::Incomplete(nom::Needed::Unknown) => {
-        vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "Incomplete\0".as_ptr());
-      }
+        vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "Incomplete\0".as_ptr());
+      },
+      nom::IResult::Done(i,h) => {
+        vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "FOUND FLV FILE version: %d\n\0".as_ptr(), h.version as c_uint);
+        if h.audio {
+          vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "has audio\0".as_ptr());
+        }
+        if h.video {
+          vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "has video\0".as_ptr());
+        }
+
+        (*p_demux).pf_demux   = Some(demux);
+        (*p_demux).pf_control = Some(control);
+
+        return 0;
+        
+      },
 
     }
   //panic!("IN OPEN");
   }
 
-  unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function OPEN %d\n".as_ptr(), 42); }
+  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function OPEN %d\n".as_ptr(), 42); }
   -1
 }
 
-extern "C" fn close(obj: *mut demux_t) {
-  panic!("IN CLOSE");
+extern "C" fn close(p_demux: *mut demux_t) {
+  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in CLOSE\n".as_ptr()); }
+}
+
+unsafe extern "C" fn demux(p_demux: *mut demux_t) -> c_int {
+  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in DEMUX\n".as_ptr()); }
+  -1
+}
+
+unsafe extern "C" fn control(p_demux: *mut demux_t, i_query: c_int, args: *const va_list) -> c_int {
+  unsafe { vlc_Log((p_demux as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in CONTROL\n".as_ptr()); }
+  -1
 }
