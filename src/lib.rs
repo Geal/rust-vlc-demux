@@ -81,18 +81,15 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
 }
 
 extern "C" fn open(obj: *mut demux_t) -> c_int {
-  unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), b"inrustwetrust.rs".as_ptr(),
-    0, b"open\0".as_ptr(), "in rust function before stream_Peek %d\n\0".as_ptr(), 42); }
+  unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function before stream_Peek %d\n\0".as_ptr(), 42); }
   unsafe {
     let sl = stream_Peek((*obj).s, 12);
     //panic!("GOT SLICE: {:?}", sl);
-    vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), b"inrustwetrust.rs".as_ptr(),
-      0, b"<>\0".as_ptr(), "got slice: %s\n\0".as_ptr(), sl.as_ptr());
-  panic!("IN OPEN");
+    vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "got slice: %s\n\0".as_ptr(), sl.as_ptr());
+  //panic!("IN OPEN");
   }
 
-  unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), b"inrustwetrust.rs".as_ptr(),
-    0, b"open\0".as_ptr(), "in rust function OPEN %d\n".as_ptr(), 42); }
+  unsafe { vlc_Log((obj as *mut vlc_object_t), 0, b"inrustwetrust\0".as_ptr(), "in rust function OPEN %d\n".as_ptr(), 42); }
   -1
 }
 
