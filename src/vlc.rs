@@ -1,4 +1,4 @@
-use libc::{uint8_t, size_t, ssize_t, c_void, c_int, c_uint};
+use libc::{uint8_t, uint64_t, size_t, ssize_t, c_void, c_int, c_uint};
 use core::mem::transmute;
 use core::slice::from_raw_parts;
 
@@ -12,6 +12,22 @@ pub fn stream_Peek<'a>(stream: *mut stream_t, size: size_t) -> &'a[u8] {
     //let sz = ffi::stream_Peek(stream, buf as *mut *const u8, size);
     let sz = ffi::stream_Peek(stream, &mut buf, size);
     //FIXME: what if returned sz is negative? (error)
-    from_raw_parts(buf, sz as usize)
+    if sz > 0 {
+      from_raw_parts(buf, sz as usize)
+    } else {
+      &[]
+    }
+  }
+}
+
+pub fn stream_Read(stream: *mut stream_t, buf: &mut [u8]) -> ssize_t {
+  unsafe {
+    ffi::stream_Read(stream, buf.as_mut_ptr() as *const c_void, buf.len())
+  }
+}
+
+pub fn stream_Tell(stream: *mut stream_t) -> uint64_t {
+  unsafe {
+    ffi::stream_Tell(stream)
   }
 }
