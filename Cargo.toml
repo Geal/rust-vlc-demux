@@ -1,7 +1,7 @@
 [package]
 name = "rustdemux"
 version = "0.1.0"
-authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
+authors = ["Geoffroy Couprie <geo.couprie@gmail.com>", "Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 
 [lib]
 crate-type = ["dylib"]
