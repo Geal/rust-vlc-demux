@@ -1,6 +1,5 @@
 #![feature(lang_items)]
 #![feature(start)]
-#![no_std]
 #![allow(non_camel_case_types, dead_code)]
 
 extern crate nom;
@@ -15,7 +14,7 @@ extern crate libc;
 use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint64_t};
 
 use vlc::{VLCModuleProperties, stream_Peek, stream_Seek, stream_Read, vlc_Log, vlc_object_t, demux_t, va_list, demux_vaControlHelper};
-use core::mem::transmute;
+use std::mem::transmute;
 
 pub use traits::*;
 pub use types::*;
