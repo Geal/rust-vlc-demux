@@ -2,7 +2,7 @@ use libc::{uint8_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int, c_uint};
 use std::mem::transmute;
 use std::slice::from_raw_parts;
 
-pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list};
+pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list, block_t};
 
 use ffi::{self, stream_t};
 
@@ -36,6 +36,12 @@ pub fn stream_Tell(stream: *mut stream_t) -> uint64_t {
 pub fn stream_Seek(stream: *mut stream_t, index: uint64_t) -> bool {
   unsafe {
     ffi::stream_Read(stream, 0 as *const c_void, index as size_t) == index as ssize_t
+  }
+}
+
+pub fn stream_Block(stream: *mut stream_t, size: size_t) -> *const block_t {
+  unsafe {
+    ffi::stream_Block(stream, size)
   }
 }
 
