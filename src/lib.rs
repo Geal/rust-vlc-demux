@@ -18,7 +18,8 @@ use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint32_t, uint64_t, i
 use std::boxed::Box;
 
 use std::mem::{transmute,zeroed};
-use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t, vlc_fourcc_t};
+use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t, vlc_fourcc_t,
+          es_out_id_t};
 use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Tell, stream_Block, vlc_Log, demux_vaControlHelper,
             es_format_Init, es_out_Send, es_out_Add};
 
@@ -42,6 +43,9 @@ macro_rules! vlc_Log {
 pub struct demux_sys_t {
   i_pos:  usize,
   i_size: usize,
+  video_initialized: bool,
+  video_es_format: es_format_t,
+  video_es_id:     *mut es_out_id_t,
 }
 
 #[no_mangle]
@@ -142,7 +146,16 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         if !stream_Seek((*p_demux).s, h.offset as uint64_t) {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", "couldn't seek past header\0");
         }
-        (*p_demux).p_sys = Box::into_raw(Box::new(demux_sys_t { i_pos: h.offset as usize, i_size: 0 }));
+
+        (*p_demux).p_sys = Box::into_raw(Box::new(
+          demux_sys_t {
+            i_pos: h.offset as usize,
+            i_size: 0,
+            video_initialized: false,
+            video_es_format: unsafe { zeroed() },
+            video_es_id: 0 as *mut c_void,
+          }
+        ));
         vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
 
         return 0;
@@ -167,7 +180,7 @@ extern "C" fn close(p_demux: *mut demux_t<demux_sys_t>) {
 }
 
 unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
-  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in DEMUX\n");
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in DEMUX\0");
   let p_sys = (*p_demux).p_sys;
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
   let mut header = [0u8; 15];
@@ -208,9 +221,17 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
     match header.tag_type {
       flavors::parser::TagType::Audio => {
         vlc_Log!(p_demux, 0, b"inrustwetrust\0", "audio\0");
+        if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "advancing %d bytes\n\0", header.data_size);
+        }
+        return 1;
       },
       flavors::parser::TagType::Script => {
         vlc_Log!(p_demux, 0, b"inrustwetrust\0", "script\0");
+        if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "advancing %d bytes\n\0", header.data_size);
+        }
+        return 1;
       },
       flavors::parser::TagType::Video => {
         vlc_Log!(p_demux, 0, b"inrustwetrust\0", "video\0");
@@ -230,18 +251,22 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not allocate block\0");
             return 0;
           }
-          (*p_block).i_dts = header.timestamp as mtime_t;
-          (*p_block).i_pts = header.timestamp as mtime_t;
+          //(*p_block).i_dts = header.timestamp as mtime_t;
+          //(*p_block).i_pts = header.timestamp as mtime_t;
+          // is pts and dts really broken for FLV?
+          (*p_block).i_dts = 0;
+          (*p_block).i_pts = 0;
 
-          let mut fmt: es_format_t = unsafe { zeroed() };
-          let VIDEO_ES = 1;
-          //es_format_Init(&mut fmt, VIDEO_ES, vlc_fourcc!('F','L','V','1'));
-          es_format_Init(&mut fmt, VIDEO_ES, codec_id_to_fourcc(vheader.codec_id));
+          if ! (*p_sys).video_initialized {
+            let VIDEO_ES = 1;
+            es_format_Init(&mut (*p_sys).video_es_format, VIDEO_ES, codec_id_to_fourcc(vheader.codec_id));
 
-          let es_id = es_out_Add((*p_demux).out, &mut fmt);
-          es_out_Send((*p_demux).out, es_id, p_block);
+            (*p_sys).video_es_id = es_out_Add((*p_demux).out, &mut (*p_sys).video_es_format);
+            (*p_sys).video_initialized = true;
+          }
+          es_out_Send((*p_demux).out, (*p_sys).video_es_id, p_block);
 
-          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "block sent\0");
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "block of size %d sent\n\0", header.data_size - 1);
           return 1;
         }
 
