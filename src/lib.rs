@@ -247,11 +247,14 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not allocate block\0");
             return 0;
           }
-          //(*p_block).i_dts = header.timestamp as mtime_t;
-          //(*p_block).i_pts = header.timestamp as mtime_t;
+
+          // FIXME: timing is complete garbage. Dividing timestamp slows things down
+          // and shows frames, aparently
+          (*p_block).i_dts = (header.timestamp / 1000) as mtime_t;
+          (*p_block).i_pts = (header.timestamp / 1000) as mtime_t;
           // is pts and dts really broken for FLV?
-          (*p_block).i_dts = 0;
-          (*p_block).i_pts = 0;
+          //(*p_block).i_dts = 0;
+          //(*p_block).i_pts = 0;
 
           if ! (*p_sys).video_initialized {
             let VIDEO_ES = 1;
