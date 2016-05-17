@@ -221,11 +221,14 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             vheader.codec_id);
 
 
-          let p_block = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
+          let p_block: *mut block_t = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
           if p_block == 0 as *mut block_t {
             vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not allocate block\0");
             return 0;
           }
+          (*p_block).i_dts = header.timestamp as mtime_t;
+          (*p_block).i_pts = header.timestamp as mtime_t;
+
         }
 
       },

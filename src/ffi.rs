@@ -303,7 +303,7 @@ extern {
   // https://www.videolan.org/developers/vlc/doc/doxygen/html/group__stream.html
   pub fn stream_Tell(stream: *mut stream_t) -> uint64_t;
 
-  pub fn stream_Block(stream: *mut stream_t, size: size_t) -> *const block_t;
+  pub fn stream_Block(stream: *mut stream_t, size: size_t) -> *mut block_t;
 
   pub fn demux_vaControlHelper(stream: *mut stream_t, i_start: int64_t, i_end: int64_t,
                                    i_bitrate: int64_t, i_align: c_int, i_query: c_int, args: *const va_list) -> c_int;

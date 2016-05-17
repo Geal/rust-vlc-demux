@@ -39,7 +39,7 @@ pub fn stream_Seek(stream: *mut stream_t, index: uint64_t) -> bool {
   }
 }
 
-pub fn stream_Block(stream: *mut stream_t, size: size_t) -> *const block_t {
+pub fn stream_Block(stream: *mut stream_t, size: size_t) -> *mut block_t {
   unsafe {
     ffi::stream_Block(stream, size)
   }
