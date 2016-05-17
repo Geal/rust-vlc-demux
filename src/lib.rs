@@ -15,7 +15,9 @@ use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint32_t, uint64_t, i
 use std::boxed::Box;
 
 use std::mem::transmute;
-use vlc::{VLCModuleProperties, stream_Peek, stream_Seek, stream_Read, stream_Tell, vlc_Log, vlc_object_t, demux_t, va_list, demux_vaControlHelper};
+use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t};
+use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Tell, stream_Block, vlc_Log, demux_vaControlHelper};
+
 
 pub use traits::*;
 pub use types::*;
@@ -196,10 +198,44 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "tag_header: type=%d, size=%d, timestamp:%d, stream_id: %d\0",
              header.tag_type as uint32_t, header.data_size, header.timestamp, header.stream_id);
 
+    (*p_sys).i_pos += 15;
+    (*p_sys).i_size = header.data_size as usize;
+
+    match header.tag_type {
+      flavors::parser::TagType::Audio => {
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "audio\0");
+      },
+      flavors::parser::TagType::Script => {
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "script\0");
+      },
+      flavors::parser::TagType::Video => {
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "video\0");
+        let mut v_header = [0u8; 1];
+        let sz = stream_Read((*p_demux).s, &mut v_header);
+        if sz < 1 {
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not read header, got: %d bytes\0", sz);
+          return 0;
+        }
+        if let nom::IResult::Done(_, vheader) = flavors::parser::video_data_header(&v_header) {
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "frame type: %d, codec id: %d\0", vheader.frame_type,
+            vheader.codec_id);
+
+
+          let p_block = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
+          if p_block == 0 as *mut c_void {
+            vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not allocate block\0");
+            return 0;
+          }
+        }
+
+      },
+
+
+    }
   }
 
   //let i_pos = stream_Tell((*p_demux).s);
-  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "position: %d\0", (*p_sys).i_pos);
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "new position: %d\0", (*p_sys).i_pos);
 
   -1
 }
