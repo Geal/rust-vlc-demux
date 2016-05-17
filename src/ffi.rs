@@ -3,9 +3,9 @@ use libc::{uint8_t, uint16_t, uint32_t, uint64_t, int64_t, size_t, ssize_t, c_vo
 
 #[macro_export]
 macro_rules! vlc_fourcc (
-  ($a: expr, $b: expr, :c: expr, $d: expr) => {
-    d as uint32_t | ((c as uint32_t) << 8) |
-      ((b as uint32_t) << 16) | ((a as uint32_t) << 24)
+  ($a: expr, $b: expr, $c: expr, $d: expr) => {
+    $a as uint32_t | (($b as uint32_t) << 8) |
+      (($c as uint32_t) << 16) | (($d as uint32_t) << 24)
   }
 );
 
