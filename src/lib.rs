@@ -121,6 +121,7 @@ extern "C" fn open(p_demux: *mut demux_t) -> c_int {
         if h.video {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", "has video\0");
         }
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "offset: %d\0", h.offset);
 
         (*p_demux).pf_demux   = Some(demux);
         (*p_demux).pf_control = Some(control);
