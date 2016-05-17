@@ -235,7 +235,8 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
           let mut fmt: es_format_t = unsafe { zeroed() };
           let VIDEO_ES = 1;
-          es_format_Init(&mut fmt, VIDEO_ES, vlc_fourcc!('F','L','V','1'));
+          //es_format_Init(&mut fmt, VIDEO_ES, vlc_fourcc!('F','L','V','1'));
+          es_format_Init(&mut fmt, VIDEO_ES, codec_id_to_fourcc(vheader.codec_id));
 
           let es_id = es_out_Add((*p_demux).out, &mut fmt);
           es_out_Send((*p_demux).out, es_id, p_block);
@@ -266,3 +267,17 @@ unsafe extern "C" fn control(p_demux: *mut demux_t<demux_sys_t>, i_query: c_int,
 
   res
 }
+
+
+pub fn codec_id_to_fourcc(id: flavors::parser::CodecId) -> vlc_fourcc_t {
+  match id {
+  flavors::parser::CodecId::JPEG    => vlc_fourcc!('j','p','e','g'),
+  flavors::parser::CodecId::H263    => vlc_fourcc!('F','L','V','1'),
+  flavors::parser::CodecId::SCREEN  => vlc_fourcc!('F','S','V','1'),
+  flavors::parser::CodecId::VP6     => vlc_fourcc!('V','P','6','F'),
+  flavors::parser::CodecId::VP6A    => vlc_fourcc!('V','P','6','A'),
+  flavors::parser::CodecId::SCREEN2 => vlc_fourcc!('F','S','V','2'),
+  flavors::parser::CodecId::H264    => vlc_fourcc!('h','2','6','4'),
+  }
+}
+
