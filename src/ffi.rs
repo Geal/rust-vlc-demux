@@ -44,8 +44,6 @@ pub type es_out_t     = c_void;
 //FIXME: correct va_list implementation in Rust?
 pub type va_list      = c_void;
 pub type input_thread_t = c_void;
-//FIXME: this is a local type
-pub type demux_sys_t  = c_void;
 
 #[repr(C)]
 pub struct vlc_object_t {
