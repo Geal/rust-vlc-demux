@@ -222,7 +222,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
 
           let p_block = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
-          if p_block == 0 as *mut c_void {
+          if p_block == 0 as *mut block_t {
             vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not allocate block\0");
             return 0;
           }

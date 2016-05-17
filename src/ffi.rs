@@ -1,4 +1,4 @@
-use libc::{uint8_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int, c_uint, c_char};
+use libc::{uint8_t, uint32_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int, c_uint, c_char};
 
 #[repr(i32)]
 pub enum VLCModuleProperties {
@@ -44,7 +44,7 @@ pub type es_out_t       = c_void;
 //FIXME: correct va_list implementation in Rust?
 pub type va_list        = c_void;
 pub type input_thread_t = c_void;
-pub type block_t        = c_void;
+pub type mtime_t        = int64_t;
 
 #[repr(C)]
 pub struct vlc_object_t {
@@ -88,6 +88,21 @@ pub struct demux_t<T> {
   pub p_sys:           *mut T,
 
   pub p_input:         *mut input_thread_t,
+}
+
+#[repr(C)]
+pub struct block_t {
+  pub p_next:       *mut block_t,
+  pub p_buffer:     *mut uint8_t,
+  pub i_buffer:     size_t,
+  pub p_start:      *mut uint8_t,
+  pub i_size:       size_t,
+  pub i_flags:      uint32_t,
+  pub i_nb_samples: c_uint,
+  pub i_pts:        mtime_t,
+  pub i_dts:        mtime_t,
+  pub i_length:     mtime_t,
+  pub pf_release:   Option<unsafe extern "C" fn(*mut block_t)>,
 }
 
 #[link(name = "vlccore")]
