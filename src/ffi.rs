@@ -104,6 +104,8 @@ extern {
   // https://www.videolan.org/developers/vlc/doc/doxygen/html/group__stream.html
   pub fn stream_Tell(stream: *mut stream_t) -> uint64_t;
 
+  pub fn stream_Seek(stream: *mut stream_t, index: uint64_t) -> c_int;
+
   //FIXME: the actual vlc_Log does not the one defined in include/vlc_messages.h, why?
   //pub fn vlc_Log(obj: *mut vlc_object_t, priority: c_int, module: *const uint8_t, file: *const uint8_t,
   //  line: c_uint, func: *const uint8_t, format: *const uint8_t, ...);
