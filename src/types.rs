@@ -1,4 +1,5 @@
 use libc::{c_char, c_void, free, malloc};
+use core;
 
 pub struct CString {
     inner: *mut c_char,
@@ -35,5 +36,66 @@ impl CString {
 impl Drop for CString {
     fn drop(&mut self) {
         unsafe { free(self.inner as *mut c_void) }
+    }
+}
+
+pub struct VlcBox<T: ?Sized> {
+    inner: *mut T,
+    counter: *mut u32,
+}
+
+impl<T> VlcBox<T> {
+    pub fn new(t: T) -> VlcBox<T> {
+        unsafe {
+            let size = core::mem::size_of::<T>();
+            let t = malloc(size) as *mut u8;
+            let counter = malloc(4) as *mut u32;
+            *counter = 1;
+            let x = &t;
+            let c_x = t as *mut _ as *mut u8;
+            for pos in 0..size {
+                *t.offset(pos as isize) = *c_x.offset(pos as isize);
+            }
+            VlcBox {
+                inner: t as *mut T,
+                counter: counter,
+            }
+        }
+    }
+}
+
+impl<T> core::ops::Deref for VlcBox<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        unsafe { &*self.inner }
+    }
+}
+
+impl<T> core::ops::DerefMut for VlcBox<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        unsafe { &mut *self.inner }
+    }
+}
+
+impl<T> Clone for VlcBox<T> {
+    fn clone(&self) -> VlcBox<T> {
+        unsafe {*self.counter += 1; }   
+        VlcBox {
+            inner: self.inner,
+            counter: self.counter,
+        }
+    }
+}
+
+impl<T: ?Sized> Drop for VlcBox<T> {
+    fn drop(&mut self) {
+        unsafe {
+            *self.counter -= 1;
+            if *self.counter < 1 {
+                free(self.inner as *mut c_void);
+                free(self.counter as *mut c_void);
+            }
+        }
     }
 }

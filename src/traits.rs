@@ -16,11 +16,11 @@ impl<'a> ToC<'a, *const c_char> for str {
     }
 }
 
-impl<'a> ToC<'a, *mut c_char> for str {
+/*impl<'a> ToC<'a, *mut c_char> for str {
     type Storage = CString;
 
     fn to_c(&self) -> *mut c_char {
         let c_str = CString::new(self).unwrap();
         c_str.as_mut_ptr()
     }
-}
+}*/
