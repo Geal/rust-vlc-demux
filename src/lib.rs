@@ -11,7 +11,7 @@ mod traits;
 mod types;
 
 extern crate libc;
-use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint64_t, int64_t};
+use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint32_t, uint64_t, int64_t};
 use std::boxed::Box;
 
 use std::mem::transmute;
@@ -132,12 +132,12 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         (*p_demux).pf_control = Some(control);
 
         vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
-        (*p_demux).p_sys = Box::into_raw(Box::new(demux_sys_t { i_pos: 9, i_size: 0 }));
-        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
 
         if !stream_Seek((*p_demux).s, h.offset as uint64_t) {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", "couldn't seek past header\0");
         }
+        (*p_demux).p_sys = Box::into_raw(Box::new(demux_sys_t { i_pos: h.offset as usize, i_size: 0 }));
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
 
         return 0;
       },
@@ -164,6 +164,40 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in DEMUX\n");
   let p_sys = (*p_demux).p_sys;
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
+  let mut header = [0u8; 15];
+  let sz = stream_Read((*p_demux).s, &mut header);
+  if sz < 15 {
+    vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not read header, got: %d bytes\0", sz);
+    return -1;
+  }
+
+  let r = nom::be_u32(&header[..4]);
+  if let nom::IResult::Done(i,o) = r {
+    vlc_Log!(p_demux, 0, b"inrustwetrust\0", "previous tag size: %d\0", o);
+  } else {
+    vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not parse\0");
+    return -1;
+  }
+
+  let r = flavors::parser::tag_header(&header[4..]);
+  match r {
+    nom::IResult::Error(_) => {
+      vlc_Log!(p_demux, 0, b"inrustwetrust\0", "tag_header error\0");
+      return -1;
+    },
+    nom::IResult::Incomplete(_) => {
+      vlc_Log!(p_demux, 0, b"inrustwetrust\0", "tag_header incomplete\0");
+      return -1;
+    },
+    _ => {}
+  }
+
+  if let nom::IResult::Done(remaining, header) = r {
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "tag_header: type=%d, size=%d, timestamp:%d, stream_id: %d\0",
+             header.tag_type as uint32_t, header.data_size, header.timestamp, header.stream_id);
+
+  }
+
   //let i_pos = stream_Tell((*p_demux).s);
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "position: %d\0", (*p_sys).i_pos);
 
