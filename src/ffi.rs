@@ -49,7 +49,6 @@ pub enum VLCModuleProperties {
 pub type stream_t       = c_void;
 pub type libvlc_int_t   = c_void;
 pub type module_t       = c_void;
-pub type es_out_t       = c_void;
 //FIXME: correct va_list implementation in Rust?
 pub type va_list        = c_void;
 pub type input_thread_t = c_void;
@@ -59,6 +58,7 @@ pub type vlc_fourcc_t   = uint32_t;
 
 pub type extra_languages_t = c_void;
 pub type text_style_t      = c_void;
+pub type es_out_sys_t      = c_void;
 
 #[repr(C)]
 pub struct vlc_object_t {
@@ -102,6 +102,16 @@ pub struct demux_t<T> {
   pub p_sys:           *mut T,
 
   pub p_input:         *mut input_thread_t,
+}
+
+#[repr(C)]
+pub struct es_out_t {
+  pub pf_add:     Option<unsafe extern "C" fn(*mut es_out_t, *mut es_format_t) -> *mut es_out_id_t>,
+  pub pf_send:    Option<unsafe extern "C" fn(*mut es_out_t, *mut es_out_id_t, *mut block_t) -> c_int>,
+  pub pf_del:     Option<unsafe extern "C" fn(*mut es_out_t, *mut es_out_id_t)>,
+  pub pf_control: Option<unsafe extern "C" fn(*mut es_out_t, c_int, va_list) -> c_int>,
+  pub pf_destroy: Option<unsafe extern "C" fn(*mut es_out_t)>,
+  pub p_sys:      *mut es_out_sys_t,
 }
 
 #[repr(C)]

@@ -6,7 +6,10 @@ extern crate nom;
 extern crate flavors;
 
 mod vlc;
+
+#[macro_use]
 mod ffi;
+
 mod traits;
 mod types;
 
@@ -14,9 +17,10 @@ extern crate libc;
 use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint32_t, uint64_t, int64_t};
 use std::boxed::Box;
 
-use std::mem::transmute;
-use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t};
-use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Tell, stream_Block, vlc_Log, demux_vaControlHelper};
+use std::mem::{transmute,zeroed};
+use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t, vlc_fourcc_t};
+use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Tell, stream_Block, vlc_Log, demux_vaControlHelper,
+            es_format_Init, es_out_Send, es_out_Add};
 
 
 pub use traits::*;
@@ -229,6 +233,15 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           (*p_block).i_dts = header.timestamp as mtime_t;
           (*p_block).i_pts = header.timestamp as mtime_t;
 
+          let mut fmt: es_format_t = unsafe { zeroed() };
+          let VIDEO_ES = 1;
+          es_format_Init(&mut fmt, VIDEO_ES, vlc_fourcc!('F','L','V','1'));
+
+          let es_id = es_out_Add((*p_demux).out, &mut fmt);
+          es_out_Send((*p_demux).out, es_id, p_block);
+
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "block sent\0");
+          return 1;
         }
 
       },

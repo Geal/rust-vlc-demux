@@ -2,7 +2,8 @@ use libc::{uint8_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int, c_uint};
 use std::mem::transmute;
 use std::slice::from_raw_parts;
 
-pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list, block_t};
+pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list, block_t, mtime_t, es_format_t,
+                vlc_fourcc_t, es_out_t, es_out_id_t};
 
 use ffi::{self, stream_t};
 
@@ -43,6 +44,19 @@ pub fn stream_Block(stream: *mut stream_t, size: size_t) -> *mut block_t {
   unsafe {
     ffi::stream_Block(stream, size)
   }
+}
+
+pub fn es_format_Init(format: *mut es_format_t, i_cat: c_int, i_codec: vlc_fourcc_t) {
+  unsafe { ffi::es_format_Init(format, i_cat, i_codec) }
+}
+
+pub fn es_out_Send(out: *mut es_out_t, id: *mut es_out_id_t, p_block: *mut block_t) -> c_int {
+  // FIXME: should not unwrap without checks
+  unsafe { ((*out).pf_send.as_ref().unwrap())( out, id, p_block ) }
+}
+
+pub fn es_out_Add(out: *mut es_out_t, fmt: *mut es_format_t) -> *mut es_out_id_t {
+  unsafe { ((*out).pf_add.as_ref().unwrap())( out, fmt ) }
 }
 
 pub fn demux_vaControlHelper(stream: *mut stream_t, i_start: int64_t, i_end: int64_t,
