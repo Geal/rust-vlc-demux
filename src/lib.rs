@@ -115,8 +115,7 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in rust function before stream_Peek %d\n\0", 42);
   unsafe {
     let sl = stream_Peek((*p_demux).s, 9);
-    //panic!("GOT SLICE: {:?}", sl);
-    vlc_Log!(p_demux, 0, b"inrustwetrust\0", "got slice: %s\n\0", sl.as_ptr());
+    //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "got slice: %s\n\0", sl.as_ptr());
 
     match flavors::parser::header(sl) {
       nom::IResult::Error(_) => {
@@ -140,8 +139,6 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
         (*p_demux).pf_demux   = Some(demux);
         (*p_demux).pf_control = Some(control);
-
-        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
 
         if !stream_Seek((*p_demux).s, h.offset as uint64_t) {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", "couldn't seek past header\0");
@@ -180,9 +177,8 @@ extern "C" fn close(p_demux: *mut demux_t<demux_sys_t>) {
 }
 
 unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
-  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in DEMUX\0");
+  //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in DEMUX\0");
   let p_sys = (*p_demux).p_sys;
-  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
   let mut header = [0u8; 15];
   let sz = stream_Read((*p_demux).s, &mut header);
   if sz < 15 {
@@ -192,7 +188,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
   let r = nom::be_u32(&header[..4]);
   if let nom::IResult::Done(i,o) = r {
-    vlc_Log!(p_demux, 0, b"inrustwetrust\0", "previous tag size: %d\0", o);
+    //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "previous tag size: %d\0", o);
   } else {
     vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not parse\0");
     return -1;
@@ -212,7 +208,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   }
 
   if let nom::IResult::Done(remaining, header) = r {
-  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "tag_header: type=%d, size=%d, timestamp:%d, stream_id: %d\0",
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "tag_header: type=%d,\tsize=%d,\ttimestamp:%d,\tstream_id: %d\0",
              header.tag_type as uint32_t, header.data_size, header.timestamp, header.stream_id);
 
     (*p_sys).i_pos += 15;
@@ -220,21 +216,21 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
     match header.tag_type {
       flavors::parser::TagType::Audio => {
-        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "audio\0");
+        //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "audio\0");
         if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
-          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "advancing %d bytes\n\0", header.data_size);
+          //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "advancing %d bytes\n\0", header.data_size);
         }
         return 1;
       },
       flavors::parser::TagType::Script => {
-        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "script\0");
+        //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "SCRIPT\0");
         if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
-          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "advancing %d bytes\n\0", header.data_size);
+          //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "advancing %d bytes\n\0", header.data_size);
         }
         return 1;
       },
       flavors::parser::TagType::Video => {
-        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "video\0");
+        //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "video\0");
         let mut v_header = [0u8; 1];
         let sz = stream_Read((*p_demux).s, &mut v_header);
         if sz < 1 {
