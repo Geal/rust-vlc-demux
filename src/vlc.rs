@@ -34,6 +34,6 @@ pub fn stream_Tell(stream: *mut stream_t) -> uint64_t {
 
 pub fn stream_Seek(stream: *mut stream_t, index: uint64_t) -> bool {
   unsafe {
-    return ffi::stream_Seek(stream, index) == 0
+    ffi::stream_Read(stream, 0 as *const c_void, index as size_t) == index as ssize_t
   }
 }

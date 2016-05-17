@@ -12,9 +12,9 @@ mod traits;
 mod types;
 
 extern crate libc;
-use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t};
+use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint64_t};
 
-use vlc::{VLCModuleProperties, stream_Peek, vlc_Log, vlc_object_t, demux_t, va_list};
+use vlc::{VLCModuleProperties, stream_Peek, stream_Seek, stream_Read, vlc_Log, vlc_object_t, demux_t, va_list};
 use core::mem::transmute;
 
 pub use traits::*;
@@ -125,6 +125,10 @@ extern "C" fn open(p_demux: *mut demux_t) -> c_int {
 
         (*p_demux).pf_demux   = Some(demux);
         (*p_demux).pf_control = Some(control);
+
+        if !stream_Seek((*p_demux).s, h.offset as uint64_t) {
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", "couldn't seek past header\0");
+        }
 
         return 0;
         
