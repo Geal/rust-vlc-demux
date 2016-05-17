@@ -11,10 +11,11 @@ mod traits;
 mod types;
 
 extern crate libc;
-use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint64_t};
+use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint64_t, int64_t};
+use std::boxed::Box;
 
-use vlc::{VLCModuleProperties, stream_Peek, stream_Seek, stream_Read, vlc_Log, vlc_object_t, demux_t, va_list, demux_vaControlHelper};
 use std::mem::transmute;
+use vlc::{VLCModuleProperties, stream_Peek, stream_Seek, stream_Read, stream_Tell, vlc_Log, vlc_object_t, demux_t, va_list, demux_vaControlHelper};
 
 pub use traits::*;
 pub use types::*;
@@ -30,6 +31,11 @@ macro_rules! vlc_Log {
       vlc_Log($demux as *mut vlc_object_t, $priority, $module.as_ptr(), $ format.as_ptr(), $($args),*)
     }
   }};
+}
+
+pub struct demux_sys_t {
+  i_pos:  usize,
+  i_size: usize,
 }
 
 #[no_mangle]
@@ -77,7 +83,7 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
   }
 
   unsafe {
-    let p_open: extern "C" fn(*mut demux_t) -> c_int = transmute(open as extern "C" fn(_) -> c_int);
+    let p_open: extern "C" fn(*mut demux_t<demux_sys_t>) -> c_int = transmute(open as extern "C" fn(_) -> c_int);
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CB_OPEN as i32, p_open) != 0 {
       panic!("cannot set module open callback");
       return -1;
@@ -85,7 +91,7 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
   }
 
   unsafe {
-    let p_close: extern "C" fn(*mut demux_t) = transmute(close as extern "C" fn(_));
+    let p_close: extern "C" fn(*mut demux_t<demux_sys_t>) = transmute(close as extern "C" fn(_));
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CB_CLOSE as i32, p_close) != 0 {
       panic!("cannot set module close callback");
       return -1;
@@ -95,7 +101,7 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
  0
 }
 
-extern "C" fn open(p_demux: *mut demux_t) -> c_int {
+extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in rust function before stream_Peek %d\n\0", 42);
   unsafe {
     let sl = stream_Peek((*p_demux).s, 9);
@@ -125,12 +131,15 @@ extern "C" fn open(p_demux: *mut demux_t) -> c_int {
         (*p_demux).pf_demux   = Some(demux);
         (*p_demux).pf_control = Some(control);
 
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
+        (*p_demux).p_sys = Box::into_raw(Box::new(demux_sys_t { i_pos: 9, i_size: 0 }));
+        vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
+
         if !stream_Seek((*p_demux).s, h.offset as uint64_t) {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", "couldn't seek past header\0");
         }
 
         return 0;
-        
       },
 
     }
@@ -141,19 +150,33 @@ extern "C" fn open(p_demux: *mut demux_t) -> c_int {
   -1
 }
 
-extern "C" fn close(p_demux: *mut demux_t) {
+extern "C" fn close(p_demux: *mut demux_t<demux_sys_t>) {
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in CLOSE\n");
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
+  unsafe {
+    if (*p_demux).p_sys.is_null() { return }
+    // drop the p_sys
+    Box::from_raw((*p_demux).p_sys);
+  }
 }
 
-unsafe extern "C" fn demux(p_demux: *mut demux_t) -> c_int {
+unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in DEMUX\n");
+  let p_sys = (*p_demux).p_sys;
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
+  //let i_pos = stream_Tell((*p_demux).s);
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "position: %d\0", (*p_sys).i_pos);
+
   -1
 }
 
-unsafe extern "C" fn control(p_demux: *mut demux_t, i_query: c_int, args: *const va_list) -> c_int {
-  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in CONTROL\n");
-  let res = demux_vaControlHelper((*p_demux).s, 0, 0, 0, 0, i_query, args);
-  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "CONTROL res: %d\n", res);
+unsafe extern "C" fn control(p_demux: *mut demux_t<demux_sys_t>, i_query: c_int, args: *const va_list) -> c_int {
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in CONTROL\0");
+  let p_sys = (*p_demux).p_sys;
+  let res = demux_vaControlHelper((*p_demux).s, (*p_sys).i_pos as int64_t,
+                                  ((*p_sys).i_pos + (*p_sys).i_size) as int64_t,
+                                     0, 0, i_query, args);
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "CONTROL res: %d\0", res);
 
   res
 }

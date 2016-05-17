@@ -59,7 +59,7 @@ pub struct vlc_object_t {
 }
 
 #[repr(C)]
-pub struct demux_t {
+pub struct demux_t<T> {
   //VLC_COMMON_MEMBERS
   pub psz_object_type: *const c_char,
   pub psz_header:      *mut c_char,
@@ -77,8 +77,8 @@ pub struct demux_t {
 
   pub s:               *mut stream_t,
   pub out:             *mut es_out_t,
-  pub pf_demux:        Option<unsafe extern "C" fn(*mut demux_t) -> c_int>,
-  pub pf_control:      Option<unsafe extern "C" fn(*mut demux_t, c_int, *const va_list) -> c_int>,
+  pub pf_demux:        Option<unsafe extern "C" fn(*mut demux_t<T>) -> c_int>,
+  pub pf_control:      Option<unsafe extern "C" fn(*mut demux_t<T>, c_int, *const va_list) -> c_int>,
 
   // 'info' nested struct. Can we do that with Rust FFI?
   pub i_update:        c_uint,
@@ -86,7 +86,7 @@ pub struct demux_t {
   pub i_seekpoint:     c_int,
 
   //FIXME: p_sys contains a pointer to a module specific structure, make it generic?
-  pub p_sys:           *mut demux_sys_t,
+  pub p_sys:           *mut T,
 
   pub p_input:         *mut input_thread_t,
 }
