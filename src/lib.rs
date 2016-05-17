@@ -14,7 +14,7 @@ mod types;
 extern crate libc;
 use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint64_t};
 
-use vlc::{VLCModuleProperties, stream_Peek, stream_Seek, stream_Read, vlc_Log, vlc_object_t, demux_t, va_list};
+use vlc::{VLCModuleProperties, stream_Peek, stream_Seek, stream_Read, vlc_Log, vlc_object_t, demux_t, va_list, demux_vaControlHelper};
 use core::mem::transmute;
 
 pub use traits::*;
@@ -153,5 +153,8 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t) -> c_int {
 
 unsafe extern "C" fn control(p_demux: *mut demux_t, i_query: c_int, args: *const va_list) -> c_int {
   vlc_Log!(p_demux, 0, b"inrustwetrust\0", "in CONTROL\n");
-  -1
+  let res = demux_vaControlHelper((*p_demux).s, 0, 0, 0, 0, i_query, args);
+  vlc_Log!(p_demux, 0, b"inrustwetrust\0", "CONTROL res: %d\n", res);
+
+  res
 }

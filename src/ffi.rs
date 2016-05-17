@@ -1,4 +1,4 @@
-use libc::{uint8_t, uint64_t, size_t, ssize_t, c_void, c_int, c_uint, c_char};
+use libc::{uint8_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int, c_uint, c_char};
 
 #[repr(i32)]
 pub enum VLCModuleProperties {
@@ -103,6 +103,9 @@ extern {
   pub fn stream_Read(stream: *mut stream_t, buf: *const c_void, size: size_t) -> ssize_t;
   // https://www.videolan.org/developers/vlc/doc/doxygen/html/group__stream.html
   pub fn stream_Tell(stream: *mut stream_t) -> uint64_t;
+
+  pub fn demux_vaControlHelper(stream: *mut stream_t, i_start: int64_t, i_end: int64_t,
+                                   i_bitrate: int64_t, i_align: c_int, i_query: c_int, args: *const va_list) -> c_int;
 
   //FIXME: the actual vlc_Log does not the one defined in include/vlc_messages.h, why?
   //pub fn vlc_Log(obj: *mut vlc_object_t, priority: c_int, module: *const uint8_t, file: *const uint8_t,
