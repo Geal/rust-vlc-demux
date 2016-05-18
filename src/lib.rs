@@ -219,9 +219,10 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
     match header.tag_type {
       flavors::parser::TagType::Audio => {
         vlc_Log!(p_demux, 0, b"inrustwetrust\0", "audio\0");
-        if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
+        /*if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"advancing %d bytes\n\0", header.data_size);
         }
+        */
         let mut v_header = [0u8; 1];
         let sz = stream_Read((*p_demux).s, &mut v_header);
         if sz < 1 {
@@ -236,6 +237,9 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
                    format!("{:?}", vheader.sound_rate).to_c(),
                    format!("{:?}", vheader.sound_size).to_c(),
                    format!("{:?}", vheader.sound_type).to_c());
+        if stream_Seek((*p_demux).s, (header.data_size -1) as uint64_t) {
+          //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "advancing %d bytes\n\0", header.data_size);
+        }
           return 1;
         }
         return 0;
