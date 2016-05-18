@@ -45,8 +45,11 @@ pub struct demux_sys_t {
   i_pos:  usize,
   i_size: usize,
   video_initialized: bool,
-  video_es_format: es_format_t,
-  video_es_id:     *mut es_out_id_t,
+  video_es_format:   es_format_t,
+  video_es_id:       *mut es_out_id_t,
+  audio_initialized: bool,
+  audio_es_format:   es_format_t,
+  audio_es_id:       *mut es_out_id_t,
 }
 
 #[no_mangle]
@@ -152,6 +155,9 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             video_initialized: false,
             video_es_format: unsafe { zeroed() },
             video_es_id: 0 as *mut c_void,
+            audio_initialized: false,
+            audio_es_format: unsafe { zeroed() },
+            audio_es_id: 0 as *mut c_void,
           }
         ));
         vlc_Log!(p_demux, 0, b"inrustwetrust\0", "p_sys: %p\0", (*p_demux).p_sys);
@@ -242,10 +248,39 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
                    format!("{:?}", vheader.sound_rate).to_c(),
                    format!("{:?}", vheader.sound_size).to_c(),
                    format!("{:?}", vheader.sound_type).to_c());
+
+          let p_block: *mut block_t = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
+          if p_block == 0 as *mut block_t {
+            vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"could not allocate block\0");
+            return -1;
+          }
+
+          let VLC_TS_INVALID: mtime_t = 0;
+          let VLC_TS_0:       mtime_t = 1;
+          (*p_block).i_dts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
+          (*p_block).i_pts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
+
+          if ! (*p_sys).audio_initialized {
+            let AUDIO_ES = 2;
+            es_format_Init(&mut (*p_sys).audio_es_format, AUDIO_ES, audio_codec_id_to_fourcc(vheader.sound_format));
+
+            (*p_sys).audio_es_id = es_out_Add((*p_demux).out, &mut (*p_sys).audio_es_format);
+            (*p_sys).audio_initialized = true;
+          }
+
+          let ES_OUT_SET_PCR = 6;
+          es_out_Control( (*p_demux).out, ES_OUT_SET_PCR, (*p_block).i_pts );
+          es_out_Send((*p_demux).out, (*p_sys).audio_es_id, p_block);
+
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"audio block of size %d sent\n\0", header.data_size - 1);
+          return 1;
+
+          /*
         if stream_Seek((*p_demux).s, (header.data_size -1) as uint64_t) {
           //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "advancing %d bytes\n\0", header.data_size);
         }
           return 1;
+          */
         }
         return -1;
       },
@@ -282,7 +317,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
           if ! (*p_sys).video_initialized {
             let VIDEO_ES = 1;
-            es_format_Init(&mut (*p_sys).video_es_format, VIDEO_ES, codec_id_to_fourcc(vheader.codec_id));
+            es_format_Init(&mut (*p_sys).video_es_format, VIDEO_ES, video_codec_id_to_fourcc(vheader.codec_id));
 
             (*p_sys).video_es_id = es_out_Add((*p_demux).out, &mut (*p_sys).video_es_format);
             (*p_sys).video_initialized = true;
@@ -292,7 +327,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           es_out_Control( (*p_demux).out, ES_OUT_SET_PCR, (*p_block).i_pts );
           es_out_Send((*p_demux).out, (*p_sys).video_es_id, p_block);
 
-          vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"block of size %d sent\n\0", header.data_size - 1);
+          vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"video block of size %d sent\n\0", header.data_size - 1);
           return 1;
         }
 
@@ -318,8 +353,25 @@ unsafe extern "C" fn control(p_demux: *mut demux_t<demux_sys_t>, i_query: c_int,
   res
 }
 
+pub fn audio_codec_id_to_fourcc(id: flavors::parser::SoundFormat) -> vlc_fourcc_t {
+  match id {
+    flavors::parser::SoundFormat::PCM_BE                => vlc_fourcc!('l','p','c','m'),
+    flavors::parser::SoundFormat::ADPCM                 => vlc_fourcc!('S','W','F','a'),
+    flavors::parser::SoundFormat::MP3                   => vlc_fourcc!('m','p','3',' '),
+    flavors::parser::SoundFormat::PCM_LE                => vlc_fourcc!('l','p','c','m'),
+    flavors::parser::SoundFormat::NELLYMOSER_16KHZ_MONO => vlc_fourcc!('N','E','L','L'),
+    flavors::parser::SoundFormat::NELLYMOSER_8KHZ_MONO  => vlc_fourcc!('N','E','L','L'),
+    flavors::parser::SoundFormat::NELLYMOSER            => vlc_fourcc!('N','E','L','L'),
+    flavors::parser::SoundFormat::PCM_ALAW              => vlc_fourcc!('a','l','a','w'),
+    flavors::parser::SoundFormat::PCM_ULAW              => vlc_fourcc!('u','l','a','w'),
+    flavors::parser::SoundFormat::AAC                   => vlc_fourcc!('m','p','4','a'),
+    flavors::parser::SoundFormat::SPEEX                 => vlc_fourcc!('s','p','x',' '),
+    flavors::parser::SoundFormat::MP3_8KHZ              => vlc_fourcc!('m','p','3',' '),
+    flavors::parser::SoundFormat::DEVICE_SPECIFIC       => vlc_fourcc!('u','n','d','f'),
+  }
+}
 
-pub fn codec_id_to_fourcc(id: flavors::parser::CodecId) -> vlc_fourcc_t {
+pub fn video_codec_id_to_fourcc(id: flavors::parser::CodecId) -> vlc_fourcc_t {
   match id {
   flavors::parser::CodecId::JPEG    => vlc_fourcc!('j','p','e','g'),
   flavors::parser::CodecId::H263    => vlc_fourcc!('F','L','V','1'),
