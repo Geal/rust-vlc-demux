@@ -59,6 +59,10 @@ pub fn es_out_Add(out: *mut es_out_t, fmt: *mut es_format_t) -> *mut es_out_id_t
   unsafe { ((*out).pf_add.as_ref().unwrap())( out, fmt ) }
 }
 
+pub fn es_out_Control(out: *mut es_out_t, i_query: c_int, time: mtime_t) -> c_int {
+  unsafe { ffi::es_out_Control((*out).pf_control, out, i_query, time) }
+}
+
 pub fn demux_vaControlHelper(stream: *mut stream_t, i_start: int64_t, i_end: int64_t,
                                  i_bitrate: int64_t, i_align: c_int, i_query: c_int, args: *const va_list) -> c_int {
   unsafe {

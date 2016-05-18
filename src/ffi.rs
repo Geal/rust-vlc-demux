@@ -323,5 +323,8 @@ extern {
   //pub fn vlc_Log(obj: *mut vlc_object_t, priority: c_int, module: *const uint8_t, file: *const uint8_t,
   //  line: c_uint, func: *const uint8_t, format: *const uint8_t, ...);
   pub fn vlc_Log(obj: *mut vlc_object_t, priority: c_int, module: *const uint8_t, format: *const uint8_t, ...);
+}
 
+extern "C" {
+  pub fn es_out_Control(pf_control: Option<unsafe extern "C" fn(*mut es_out_t, c_int, va_list) -> c_int>, out: *mut es_out_t, i_query: c_int, ...) -> c_int;
 }

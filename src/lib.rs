@@ -22,7 +22,7 @@ use std::mem::{transmute,zeroed};
 use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t, vlc_fourcc_t,
           es_out_id_t};
 use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Tell, stream_Block, vlc_Log, demux_vaControlHelper,
-            es_format_Init, es_out_Send, es_out_Add};
+            es_format_Init, es_out_Send, es_out_Add, es_out_Control};
 
 
 pub use traits::*;
@@ -285,6 +285,9 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             (*p_sys).video_es_id = es_out_Add((*p_demux).out, &mut (*p_sys).video_es_format);
             (*p_sys).video_initialized = true;
           }
+
+          let ES_OUT_SET_PCR = 6;
+          es_out_Control( (*p_demux).out, ES_OUT_SET_PCR, (*p_block).i_pts );
           es_out_Send((*p_demux).out, (*p_sys).video_es_id, p_block);
 
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"block of size %d sent\n\0", header.data_size - 1);
