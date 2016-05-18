@@ -183,8 +183,13 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   let mut header = [0u8; 15];
   let sz = stream_Read((*p_demux).s, &mut header);
   if sz < 15 {
-    vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not read header, got: %d bytes\0", sz);
-    return -1;
+    if sz == 4 {
+      vlc_Log!(p_demux, 0, b"inrustwetrust\0", "got %d bytes, end of stream?\0", sz);
+      return 0;
+    } else {
+      vlc_Log!(p_demux, 0, b"inrustwetrust\0", "could not read header, got: %d bytes\0", sz);
+      return -1;
+    }
   }
 
   let r = nom::be_u32(&header[..4]);
