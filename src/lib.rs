@@ -228,7 +228,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         if sz < 1 {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0",
                    b"could not read audio header, got: %d bytes\0", sz);
-          return 0;
+          return -1;
         }
         if let nom::IResult::Done(_, vheader) = flavors::parser::audio_data_header(&v_header) {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0",
@@ -242,7 +242,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         }
           return 1;
         }
-        return 0;
+        return -1;
       },
       flavors::parser::TagType::Script => {
         //vlc_Log!(p_demux, 0, b"inrustwetrust\0", "SCRIPT\0");
@@ -257,7 +257,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         let sz = stream_Read((*p_demux).s, &mut v_header);
         if sz < 1 {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"could not read header, got: %d bytes\0", sz);
-          return 0;
+          return -1;
         }
         if let nom::IResult::Done(_, vheader) = flavors::parser::video_data_header(&v_header) {
           vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"frame type: %d, codec id: %d\0",
@@ -267,7 +267,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           let p_block: *mut block_t = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
           if p_block == 0 as *mut block_t {
             vlc_Log!(p_demux, 0, b"inrustwetrust\0", b"could not allocate block\0");
-            return 0;
+            return -1;
           }
 
           let VLC_TS_INVALID: mtime_t = 0;
