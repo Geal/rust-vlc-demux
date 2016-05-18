@@ -272,11 +272,13 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
           // FIXME: timing is complete garbage. Dividing timestamp slows things down
           // and shows frames, aparently
-          (*p_block).i_dts = (header.timestamp / 1000) as mtime_t;
-          (*p_block).i_pts = (header.timestamp / 1000) as mtime_t;
+          //(*p_block).i_dts = (header.timestamp / 1000) as mtime_t;
+          //(*p_block).i_pts = (header.timestamp / 1000) as mtime_t;
           // is pts and dts really broken for FLV?
           //(*p_block).i_dts = 0;
           //(*p_block).i_pts = 0;
+          (*p_block).i_dts = header.timestamp as mtime_t;
+          (*p_block).i_pts = header.timestamp as mtime_t;
 
           if ! (*p_sys).video_initialized {
             let VIDEO_ES = 1;
