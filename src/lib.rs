@@ -263,6 +263,22 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           if ! (*p_sys).audio_initialized {
             let AUDIO_ES = 2;
             es_format_Init(&mut (*p_sys).audio_es_format, AUDIO_ES, audio_codec_id_to_fourcc(vheader.sound_format));
+            (*p_sys).audio_es_format.audio.i_channels = match vheader.sound_type {
+              flavors::parser::SoundType::SndMono   => 1,
+              flavors::parser::SoundType::SndStereo => 2,
+            };
+
+            (*p_sys).audio_es_format.audio.i_rate = match vheader.sound_rate {
+              flavors::parser::SoundRate::_5_5KHZ => 5500,
+              flavors::parser::SoundRate::_11KHZ  => 11000,
+              flavors::parser::SoundRate::_22KHZ  => 22050,
+              flavors::parser::SoundRate::_44KHZ  => 44000,
+            };
+            (*p_sys).audio_es_format.audio.i_bitspersample = match vheader.sound_size {
+              flavors::parser::SoundSize::Snd8bit => 8,
+              flavors::parser::SoundSize::Snd16bit => 16,
+            };
+            (*p_sys).audio_es_format.i_bitrate = ((*p_sys).video_es_format.audio.i_rate * (*p_sys).video_es_format.audio.i_bitspersample) as c_int;
 
             (*p_sys).audio_es_id = es_out_Add((*p_demux).out, &mut (*p_sys).audio_es_format);
             (*p_sys).audio_initialized = true;
