@@ -312,8 +312,8 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
           let VLC_TS_INVALID: mtime_t = 0;
           let VLC_TS_0:       mtime_t = 1;
-          (*p_block).i_dts = VLC_TS_0 + (header.timestamp*1000) as mtime_t;
-          (*p_block).i_pts = VLC_TS_0 + (header.timestamp*1000) as mtime_t;
+          (*p_block).i_dts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
+          (*p_block).i_pts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
 
           if ! (*p_sys).video_initialized {
             let VIDEO_ES = 1;
