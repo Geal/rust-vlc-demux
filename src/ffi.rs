@@ -157,6 +157,15 @@ pub struct video_palette_t {
 }
 
 #[repr(i32)]
+pub enum es_format_category_e {
+  UNKNOWN_ES = 0,
+  VIDEO_ES,
+  AUDIO_ES,
+  SPU_ES,
+  NAV_ES,
+}
+
+#[repr(i32)]
 pub enum video_orientation_t {
   /**< Top line represents top, left column left. */
   ORIENT_TOP_LEFT = 0,
@@ -257,12 +266,12 @@ pub struct video_format_t {
 
 #[repr(C)]
 pub struct subs_format_t {
-  pub psz_encoding:      *mut c_char,
-  pub i_x_origin: c_int,
-  pub i_y_origin: c_int,
+  pub psz_encoding: *mut c_char,
+  pub i_x_origin:   c_int,
+  pub i_y_origin:   c_int,
 
   // spu struct
-    pub palette: [uint32_t;17],
+    pub palette: [uint32_t; 17],
     pub i_original_frame_width: c_int,
     pub i_original_frame_height: c_int,
 
