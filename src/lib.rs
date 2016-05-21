@@ -19,10 +19,10 @@ use libc::{size_t, c_int, c_char, c_void, c_uint, uint8_t, uint32_t, uint64_t, i
 use std::boxed::Box;
 
 use std::mem::{transmute,zeroed};
-use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t, vlc_fourcc_t,
-          es_out_id_t};
-use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Tell, stream_Block, vlc_Log, demux_vaControlHelper,
-          es_format_Init, es_out_Send, es_out_Add, es_out_Control};
+use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t,
+          vlc_fourcc_t, es_out_id_t};
+use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Tell, stream_Block, vlc_Log,
+          demux_vaControlHelper, es_format_Init, es_out_Send, es_out_Add, es_out_Control};
 
 pub use traits::*;
 pub use types::*;
@@ -62,7 +62,8 @@ pub struct demux_sys_t {
 }
 
 #[no_mangle]
-pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_void, c_int, ...) -> c_int,
+pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_void, c_int, ...)
+                                -> c_int,
   opaque: *mut c_void) -> c_int {
   let module: *mut c_void = 0 as *mut c_void;
   let config: *mut c_void = 0 as *mut c_void;
