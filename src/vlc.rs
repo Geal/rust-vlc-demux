@@ -5,7 +5,7 @@ use std::slice::from_raw_parts;
 pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list, block_t, mtime_t, es_format_t,
                 vlc_fourcc_t, es_out_t, es_out_id_t};
 
-use ffi::{self, stream_t};
+use ffi::{self, stream_t, es_format_category_e};
 
 pub fn stream_Peek<'a>(stream: *mut stream_t, size: size_t) -> &'a[u8] {
   let mut buf = 0 as *const uint8_t;
@@ -46,8 +46,9 @@ pub fn stream_Block(stream: *mut stream_t, size: size_t) -> *mut block_t {
   }
 }
 
-pub fn es_format_Init(format: *mut es_format_t, i_cat: c_int, i_codec: vlc_fourcc_t) {
-  unsafe { ffi::es_format_Init(format, i_cat, i_codec) }
+pub fn es_format_Init(format: *mut es_format_t, i_cat: es_format_category_e,
+                      i_codec: vlc_fourcc_t) {
+  unsafe { ffi::es_format_Init(format, i_cat as i32, i_codec) }
 }
 
 pub fn es_out_Send(out: *mut es_out_t, id: *mut es_out_id_t, p_block: *mut block_t) -> c_int {
@@ -64,7 +65,8 @@ pub fn es_out_Control(out: *mut es_out_t, i_query: c_int, time: mtime_t) -> c_in
 }
 
 pub fn demux_vaControlHelper(stream: *mut stream_t, i_start: int64_t, i_end: int64_t,
-                                 i_bitrate: int64_t, i_align: c_int, i_query: c_int, args: *const va_list) -> c_int {
+                             i_bitrate: int64_t, i_align: c_int, i_query: c_int,
+                             args: *const va_list) -> c_int {
   unsafe {
     ffi::demux_vaControlHelper(stream, i_start, i_end, i_bitrate, i_align, i_query, args)
   }
