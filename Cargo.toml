@@ -1,7 +1,8 @@
 [package]
-name = "rustdemux"
+name = "rustdemux_plugin"
 version = "0.1.0"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>", "Guillaume Gomez <guillaume1.gomez@gmail.com>"]
+links = "vlccore"
 build = "build.rs"
 
 [lib]
