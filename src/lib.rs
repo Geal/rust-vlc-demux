@@ -5,7 +5,9 @@
 extern crate nom;
 extern crate flavors;
 extern crate core;
-#[macro_use] extern crate va_list;
+#[macro_use] extern crate va_list as rs_va_list;
+
+#[link(name = "vlccore")] extern {}
 
 mod vlc;
 
@@ -23,18 +25,20 @@ use std::mem::{transmute,zeroed};
 use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t,
           vlc_fourcc_t, es_out_id_t};
 use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Tell, stream_Block, vlc_Log,
-          demux_vaControlHelper, es_format_Init, es_out_Send, es_out_Add, es_out_Control};
+          demux_vaControlHelper, es_format_Init, es_out_Send, es_out_Add};
 
 pub use traits::*;
 pub use types::*;
 
 macro_rules! vlc_Log {
   ($demux:expr, $priority:expr, $module:expr, $format:expr) => {{
+    #[allow(unused_unsafe)]
     unsafe {
       vlc_Log($demux as *mut vlc_object_t, $priority.to_c(), $module.as_ptr(), $format.as_ptr())
     }
   }};
   ($demux:expr, $priority:expr, $module:expr, $format:expr, $($args:expr),*) => {{
+    #[allow(unused_unsafe)]
     unsafe {
       vlc_Log($demux as *mut vlc_object_t, $priority.to_c(), $module.as_ptr(), $ format.as_ptr(),
               $($args),*)
@@ -304,8 +308,11 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             (*p_sys).audio_initialized = true;
           }
 
-          let ES_OUT_SET_PCR = 6;
-          es_out_Control( (*p_demux).out, ES_OUT_SET_PCR, (*p_block).i_pts );
+          to_va_list!(move |v: rs_va_list::va_list| {
+            let ES_OUT_SET_PCR = 6;
+            let pf_control: fn(*mut c_void, c_int, rs_va_list::va_list) = transmute((*(*p_demux).out).pf_control);
+            pf_control((*p_demux).out as *mut c_void, ES_OUT_SET_PCR, v);
+          }, (*p_block).i_pts);
           es_out_Send((*p_demux).out, (*p_sys).audio_es_id, p_block);
 
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"audio block of size %d sent\n\0",
@@ -364,8 +371,11 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             (*p_sys).video_initialized = true;
           }
 
-          let ES_OUT_SET_PCR = 6;
-          es_out_Control( (*p_demux).out, ES_OUT_SET_PCR, (*p_block).i_pts );
+          to_va_list!(move |v: rs_va_list::va_list| {
+            let ES_OUT_SET_PCR = 6;
+            let pf_control: fn(*mut c_void, c_int, rs_va_list::va_list) = transmute((*(*p_demux).out).pf_control);
+            pf_control((*p_demux).out as *mut c_void, ES_OUT_SET_PCR, v);
+          }, (*p_block).i_pts);
           es_out_Send((*p_demux).out, (*p_sys).video_es_id, p_block);
 
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"video block of size %d sent\n\0",
