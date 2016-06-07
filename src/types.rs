@@ -45,19 +45,19 @@ pub struct VlcBox<T: ?Sized> {
 }
 
 impl<T> VlcBox<T> {
-    pub fn new(t: T) -> VlcBox<T> {
+    pub fn new(mut t: T) -> VlcBox<T> {
         unsafe {
             let size = core::mem::size_of::<T>();
-            let t = malloc(size) as *mut u8;
+            let tx = malloc(size) as *mut u8;
             let counter = malloc(4) as *mut u32;
             *counter = 1;
-            let x = &t;
-            let c_x = t as *mut _ as *mut u8;
+            let x = &mut t;
+            let c_x = x as *mut _ as *mut u8;
             for pos in 0..size {
-                *t.offset(pos as isize) = *c_x.offset(pos as isize);
+                *tx.offset(pos as isize) = *c_x.offset(pos as isize);
             }
             VlcBox {
-                inner: t as *mut T,
+                inner: tx as *mut T,
                 counter: counter,
             }
         }
