@@ -1,5 +1,6 @@
-use libc::{uint8_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int, c_uint};
-use std::mem::transmute;
+#![allow(non_snake_case)]
+
+use libc::{uint8_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int};
 use std::slice::from_raw_parts;
 
 pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list, block_t, mtime_t, es_format_t,
