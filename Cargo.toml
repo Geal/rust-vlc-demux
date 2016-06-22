@@ -11,10 +11,10 @@ crate-type = ["dylib"]
 [dependencies]
 libc = "0.2.0"
 nom  = "1.2.3"
+va_list-rs = { git = "https://github.com/GuillaumeGomez/va_list-rs" }
 
 [dependencies.flavors]
 git = "https://github.com/Geal/flavors"
 
 [build-dependencies]
 gcc = "^0.3"
-

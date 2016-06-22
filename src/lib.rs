@@ -5,6 +5,7 @@
 extern crate nom;
 extern crate flavors;
 extern crate core;
+#[macro_use] extern crate va_list;
 
 mod vlc;
 
