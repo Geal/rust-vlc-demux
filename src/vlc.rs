@@ -1,5 +1,6 @@
-use libc::{uint8_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int, c_uint};
-use std::mem::transmute;
+#![allow(non_snake_case)]
+
+use libc::{uint8_t, uint64_t, int64_t, size_t, ssize_t, c_void, c_int};
 use std::slice::from_raw_parts;
 
 pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list, block_t, mtime_t, es_format_t,
@@ -58,10 +59,6 @@ pub fn es_out_Send(out: *mut es_out_t, id: *mut es_out_id_t, p_block: *mut block
 
 pub fn es_out_Add(out: *mut es_out_t, fmt: *mut es_format_t) -> *mut es_out_id_t {
   unsafe { ((*out).pf_add.as_ref().unwrap())( out, fmt ) }
-}
-
-pub fn es_out_Control(out: *mut es_out_t, i_query: c_int, time: mtime_t) -> c_int {
-  unsafe { ffi::es_out_Control((*out).pf_control, out, i_query, time) }
 }
 
 pub fn demux_vaControlHelper(stream: *mut stream_t, i_start: int64_t, i_end: int64_t,
