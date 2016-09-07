@@ -68,3 +68,34 @@ pub fn demux_vaControlHelper(stream: *mut stream_t, i_start: int64_t, i_end: int
     ffi::demux_vaControlHelper(stream, i_start, i_end, i_bitrate, i_align, i_query, args)
   }
 }
+
+pub trait VLCObject {}
+impl<T> VLCObject for demux_t<T> {}
+
+use traits::ToC;
+
+pub enum LogType {
+  Info,
+  Error,
+  Warning,
+  Debug,
+}
+
+pub fn Log<T:VLCObject>(object: &mut T, priority: LogType, module: &[u8], format: &str) {
+  unsafe {
+    let ptr = object as *mut T;
+    vlc_Log(ptr as *mut vlc_object_t, priority.to_c(), module.as_ptr(), format.to_c() as *const uint8_t)
+  }
+}
+
+macro_rules! vlc_Log {
+  ($demux:expr, $priority:expr, $module:expr, $format:expr) => {{
+    vlc::Log($demux, $priority, $module, concat!($format, "\0"))
+  }};
+  ($demux:expr, $priority:expr, $module:expr, $format:expr, $($args:expr),*) => {{
+    let formatted = fmt::format(format_args!(concat!($format, "\0"),$($args),*));
+    vlc::Log($demux, $priority, $module, &formatted)
+  }};
+}
+
+

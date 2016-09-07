@@ -1,6 +1,6 @@
 use libc::{c_char, c_int};
 use CString;
-use super::LogType;
+use vlc::LogType;
 
 pub trait ToC<'a, P: Copy> {
     type Storage;
