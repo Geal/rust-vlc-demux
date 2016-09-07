@@ -5,8 +5,6 @@ extern crate flavors;
 extern crate core;
 #[macro_use] extern crate va_list as rs_va_list;
 
-#[link(name = "vlccore")] extern {}
-
 #[macro_use]
 mod vlc;
 

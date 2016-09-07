@@ -311,11 +311,7 @@ pub struct es_format_t {
 
 #[link(name = "vlccore")]
 extern {
-  //ssize_t stream_Peek(stream_t *, const uint8_t **, size_t)
   pub fn stream_Peek(stream: *mut stream_t, buf: *mut *const uint8_t, size: size_t) -> ssize_t;
-  //VLC_API void vlc_Log(vlc_object_t *obj, int prio, const char *module,
-  //                   const char *file, unsigned line, const char *func,
-  //                   const char *format, ...) VLC_FORMAT(7, 8);
 
   // https://www.videolan.org/developers/vlc/doc/doxygen/html/group__stream.html
   pub fn stream_Read(stream: *mut stream_t, buf: *const c_void, size: size_t) -> ssize_t;
@@ -328,8 +324,5 @@ extern {
                                    i_bitrate: int64_t, i_align: c_int, i_query: c_int, args: *const va_list) -> c_int;
 
   pub fn es_format_Init(format: *mut es_format_t, i_cat: c_int, i_codec: vlc_fourcc_t);
-  //FIXME: the actual vlc_Log does not the one defined in include/vlc_messages.h, why?
-  //pub fn vlc_Log(obj: *mut vlc_object_t, priority: c_int, module: *const uint8_t, file: *const uint8_t,
-  //  line: c_uint, func: *const uint8_t, format: *const uint8_t, ...);
   pub fn vlc_Log(obj: *mut vlc_object_t, priority: c_int, module: *const uint8_t, format: *const uint8_t, ...);
 }
