@@ -56,16 +56,16 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
   unsafe {
     if vlc_set(opaque, 0 as *mut c_void, VLCModuleProperties::VLC_MODULE_CREATE as i32,
                &module) != 0 {
-      panic!("cannot create module");
-      //return -1;
+      //panic!("cannot create module");
+      return -1;
     }
   }
 
   unsafe {
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_NAME as i32,
                PLUGIN_NAME.as_ptr()) != 0 {
-      panic!("cannot set module name");
-      //return -1;
+      //panic!("cannot set module name");
+      return -1;
     }
   }
 
@@ -73,8 +73,8 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
   unsafe {
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_DESCRIPTION as i32,
                desc.as_ptr()) != 0 {
-      panic!("cannot set module description");
-      //return -1;
+      //panic!("cannot set module description");
+      return -1;
     }
   }
 
@@ -82,15 +82,15 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
   unsafe {
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CAPABILITY as i32,
                capability.as_ptr()) != 0 {
-      panic!("cannot set module capability");
-      //return -1;
+      //panic!("cannot set module capability");
+      return -1;
     }
   }
 
   unsafe {
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_SCORE as i32, 999) != 0 {
-      panic!("cannot set module score");
-      //return -1;
+      //panic!("cannot set module score");
+      return -1;
     }
   }
 
@@ -98,19 +98,18 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
     let p_open: extern "C" fn(*mut demux_t<demux_sys_t>) -> c_int =
       transmute(open as extern "C" fn(_) -> c_int);
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CB_OPEN as i32, p_open) != 0 {
-      panic!("cannot set module open callback");
-      //return -1;
+      //panic!("cannot set module open callback");
+      return -1;
     }
   }
 
   unsafe {
     let p_close: extern "C" fn(*mut demux_t<demux_sys_t>) = transmute(close as extern "C" fn(_));
     if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CB_CLOSE as i32, p_close) != 0 {
-      panic!("cannot set module close callback");
-      //return -1;
+      //panic!("cannot set module close callback");
+      return -1;
     }
   }
-  //panic!("POUETPOUETPOUET");
   0
 }
 
