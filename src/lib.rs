@@ -24,9 +24,9 @@ use std::boxed::Box;
 use std::fmt;
 
 use std::mem::{transmute,zeroed};
-use vlc::{VLCModuleProperties, LogType, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t,
+use vlc::{VLCModuleProperties, LogType, demux_t, va_list, block_t, mtime_t, es_format_t,
           vlc_fourcc_t, es_out_id_t};
-use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Block, vlc_Log,
+use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Block,
           demux_vaControlHelper, es_format_Init, es_out_Send, es_out_Add};
 
 pub use traits::*;
@@ -230,17 +230,10 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
     match header.tag_type {
       flavors::parser::TagType::Audio => {
-        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "audio");
-        /*if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"advancing {} bytes\n",
-                   header.data_size);
-        }
-        */
+        //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "audio");
         let mut v_header = [0u8; 1];
         let sz = stream_Read(p_demux.s, &mut v_header);
         if sz < 1 {
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME,
-                   "could not read audio header, got: {} bytes", sz);
           return -1;
         }
         if let nom::IResult::Done(_, vheader) = flavors::parser::audio_data_header(&v_header) {
@@ -251,7 +244,7 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
                    vheader.sound_size,
                    vheader.sound_type);
 
-          let p_block: *mut block_t = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
+          let p_block: *mut block_t = stream_Block(p_demux.s, (header.data_size - 1) as size_t);
           if p_block == 0 as *mut block_t {
             vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "could not allocate block");
             return -1;
@@ -303,19 +296,10 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "audio block of size {} sent\n",
                    header.data_size - 1);
           return 1;
-
-          /*
-        if stream_Seek((*p_demux).s, (header.data_size -1) as uint64_t) {
-          //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "advancing {} bytes\n",
-                     header.data_size);
-        }
-          return 1;
-          */
         }
         return -1;
       },
       flavors::parser::TagType::Script => {
-        //vlc_Log!(p_demux, LogType::Info, b"inrustwetrust\0", "SCRIPT");
         if stream_Seek(p_demux.s, header.data_size as uint64_t) {
           //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "advancing {} bytes\n",
           //         header.data_size);
@@ -323,7 +307,6 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         return 1;
       },
       flavors::parser::TagType::Video => {
-        //vlc_Log!(p_demux, LogType::Info, b"inrustwetrust\0", "video");
         let mut v_header = [0u8; 1];
         let sz = stream_Read(p_demux.s, &mut v_header);
         if sz < 1 {
