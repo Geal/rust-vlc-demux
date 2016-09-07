@@ -231,18 +231,45 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
     match header.tag_type {
       flavors::parser::TagType::Audio => {
         //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "audio");
-        let mut v_header = [0u8; 1];
-        let sz = stream_Read(p_demux.s, &mut v_header);
+        let mut a_header = [0u8; 1];
+        let sz = stream_Read(p_demux.s, &mut a_header);
         if sz < 1 {
           return -1;
         }
-        if let nom::IResult::Done(_, vheader) = flavors::parser::audio_data_header(&v_header) {
+        if let nom::IResult::Done(_, audio_header) = flavors::parser::audio_data_header(&a_header) {
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME,
                    "audio format: {:?}, rate: {:?}, size: {:?}, type: {:?}",
-                   vheader.sound_format,
-                   vheader.sound_rate,
-                   vheader.sound_size,
-                   vheader.sound_type);
+                   audio_header.sound_format,
+                   audio_header.sound_rate,
+                   audio_header.sound_size,
+                   audio_header.sound_type);
+
+          if ! p_sys.audio_initialized {
+            es_format_Init(&mut p_sys.audio_es_format,
+                           ffi::es_format_category_e::AUDIO_ES,
+                           audio_codec_id_to_fourcc(audio_header.sound_format));
+            p_sys.audio_es_format.audio.i_channels = match audio_header.sound_type {
+              flavors::parser::SoundType::SndMono   => 1,
+              flavors::parser::SoundType::SndStereo => 2,
+            };
+
+            p_sys.audio_es_format.audio.i_rate = match audio_header.sound_rate {
+              flavors::parser::SoundRate::_5_5KHZ => 5500,
+              flavors::parser::SoundRate::_11KHZ  => 11000,
+              flavors::parser::SoundRate::_22KHZ  => 22050,
+              flavors::parser::SoundRate::_44KHZ  => 44000,
+            };
+            p_sys.audio_es_format.audio.i_bitspersample = match audio_header.sound_size {
+              flavors::parser::SoundSize::Snd8bit => 8,
+              flavors::parser::SoundSize::Snd16bit => 16,
+            };
+            p_sys.audio_es_format.i_bitrate =
+              (p_sys.video_es_format.audio.i_rate * p_sys.video_es_format
+                                                               .audio.i_bitspersample) as c_int;
+
+            p_sys.audio_es_id = es_out_Add(p_demux.out, &mut p_sys.audio_es_format);
+            p_sys.audio_initialized = true;
+          }
 
           let p_block: *mut block_t = stream_Block(p_demux.s, (header.data_size - 1) as size_t);
           if p_block == 0 as *mut block_t {
@@ -255,33 +282,6 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           let VLC_TS_0:       mtime_t = 1;
           p_block.i_dts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
           p_block.i_pts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
-
-          if ! p_sys.audio_initialized {
-            es_format_Init(&mut p_sys.audio_es_format,
-                           ffi::es_format_category_e::AUDIO_ES,
-                           audio_codec_id_to_fourcc(vheader.sound_format));
-            p_sys.audio_es_format.audio.i_channels = match vheader.sound_type {
-              flavors::parser::SoundType::SndMono   => 1,
-              flavors::parser::SoundType::SndStereo => 2,
-            };
-
-            p_sys.audio_es_format.audio.i_rate = match vheader.sound_rate {
-              flavors::parser::SoundRate::_5_5KHZ => 5500,
-              flavors::parser::SoundRate::_11KHZ  => 11000,
-              flavors::parser::SoundRate::_22KHZ  => 22050,
-              flavors::parser::SoundRate::_44KHZ  => 44000,
-            };
-            p_sys.audio_es_format.audio.i_bitspersample = match vheader.sound_size {
-              flavors::parser::SoundSize::Snd8bit => 8,
-              flavors::parser::SoundSize::Snd16bit => 16,
-            };
-            p_sys.audio_es_format.i_bitrate =
-              (p_sys.video_es_format.audio.i_rate * p_sys.video_es_format
-                                                               .audio.i_bitspersample) as c_int;
-
-            p_sys.audio_es_id = es_out_Add(p_demux.out, &mut p_sys.audio_es_format);
-            p_sys.audio_initialized = true;
-          }
 
           let out_ref = p_demux.out;
           unsafe {
@@ -318,6 +318,14 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "frame type: {:?}, codec id: {:?}",
                    vheader.frame_type, vheader.codec_id);
 
+          if ! p_sys.video_initialized {
+            es_format_Init(&mut p_sys.video_es_format,
+                           ffi::es_format_category_e::VIDEO_ES,
+                           video_codec_id_to_fourcc(vheader.codec_id));
+
+            p_sys.video_es_id = es_out_Add(p_demux.out, &mut p_sys.video_es_format);
+            p_sys.video_initialized = true;
+          }
 
           let p_block: *mut block_t = stream_Block(p_demux.s, (header.data_size - 1) as size_t);
           if p_block == 0 as *mut block_t {
@@ -330,15 +338,6 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           let VLC_TS_0:       mtime_t = 1;
           p_block.i_dts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
           p_block.i_pts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
-
-          if ! p_sys.video_initialized {
-            es_format_Init(&mut p_sys.video_es_format,
-                           ffi::es_format_category_e::VIDEO_ES,
-                           video_codec_id_to_fourcc(vheader.codec_id));
-
-            p_sys.video_es_id = es_out_Add(p_demux.out, &mut p_sys.video_es_format);
-            p_sys.video_initialized = true;
-          }
 
           let out_ref = p_demux.out;
           unsafe {
@@ -360,7 +359,6 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
     }
   }
 
-  //let i_pos = stream_Tell((*p_demux).s);
   vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "new position: {}", p_sys.i_pos);
 
   -1
