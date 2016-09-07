@@ -20,6 +20,7 @@ mod types;
 extern crate libc;
 use libc::{size_t, c_int, c_void, c_uint, uint32_t, uint64_t, int64_t};
 use std::boxed::Box;
+use std::fmt;
 
 use std::mem::{transmute,zeroed};
 use vlc::{VLCModuleProperties, vlc_object_t, demux_t, va_list, block_t, mtime_t, es_format_t,
@@ -32,16 +33,14 @@ pub use types::*;
 
 macro_rules! vlc_Log {
   ($demux:expr, $priority:expr, $module:expr, $format:expr) => {{
-    #[allow(unused_unsafe)]
     unsafe {
-      vlc_Log($demux as *mut vlc_object_t, $priority.to_c(), $module.as_ptr(), $format.as_ptr())
+      vlc_Log($demux as *mut vlc_object_t, $priority.to_c(), $module.as_ptr(), concat!($format, "\0").as_ptr())
     }
   }};
   ($demux:expr, $priority:expr, $module:expr, $format:expr, $($args:expr),*) => {{
-    #[allow(unused_unsafe)]
     unsafe {
-      vlc_Log($demux as *mut vlc_object_t, $priority.to_c(), $module.as_ptr(), $ format.as_ptr(),
-              $($args),*)
+      let formatted = fmt::format(format_args!(concat!($format, "\0"),$($args),*));
+      vlc_Log($demux as *mut vlc_object_t, $priority.to_c(), $module.as_ptr(), formatted.as_ptr())
     }
   }};
 }
@@ -136,37 +135,37 @@ pub extern fn vlc_entry__3_0_0a(vlc_set: unsafe extern fn(*mut c_void, *mut c_vo
 }
 
 extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
-  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in rust function before stream_Peek %d\n\0", 42);
+  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in rust function before stream_Peek {}\n", 42);
   unsafe {
     let sl = stream_Peek((*p_demux).s, 9);
     //vlc_Log!(p_demux, 0, PLUGIN_NAME, "got slice: %s\n\0", sl.as_ptr());
 
     match flavors::parser::header(sl) {
       nom::IResult::Error(_) => {
-        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "parsing error\0");
+        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "parsing error");
       },
       nom::IResult::Incomplete(nom::Needed::Size(s)) => {
-        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "Incomplete(%d)\0", s as c_uint);
+        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "Incomplete({})", s as c_uint);
       }
       nom::IResult::Incomplete(nom::Needed::Unknown) => {
-        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "Incomplete\0");
+        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "Incomplete");
       },
       nom::IResult::Done(_,h) => {
-        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "FOUND FLV FILE version: %d\n\0",
+        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "FOUND FLV FILE version: {}\n",
                  h.version as c_uint);
         if h.audio {
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "has audio\0");
+          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "has audio");
         }
         if h.video {
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "has video\0");
+          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "has video");
         }
-        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "offset: %d\0", h.offset);
+        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "offset: {}", h.offset);
 
         (*p_demux).pf_demux   = Some(demux);
         (*p_demux).pf_control = Some(control);
 
         if !stream_Seek((*p_demux).s, h.offset as uint64_t) {
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "couldn't seek past header\0");
+          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "couldn't seek past header");
         }
 
         (*p_demux).p_sys = Box::into_raw(Box::new(
@@ -181,7 +180,7 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             audio_es_id: 0 as *mut c_void,
           }
         ));
-        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "p_sys: %p\0", (*p_demux).p_sys);
+        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "p_sys: {:?}", (*p_demux).p_sys);
 
         return 0;
       },
@@ -190,13 +189,13 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   //panic!("IN OPEN");
   }
 
-  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in rust function OPEN %d\n", 42);
+  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in rust function OPEN {}\n", 42);
   -1
 }
 
 extern "C" fn close(p_demux: *mut demux_t<demux_sys_t>) {
   vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in CLOSE\n");
-  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "p_sys: %p\0", (*p_demux).p_sys);
+  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "p_sys: {:?}", (*p_demux).p_sys);
   unsafe {
     if (*p_demux).p_sys.is_null() { return }
     // drop the p_sys
@@ -205,36 +204,36 @@ extern "C" fn close(p_demux: *mut demux_t<demux_sys_t>) {
 }
 
 unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
-  //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in DEMUX\0");
+  //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in DEMUX");
   let p_sys = (*p_demux).p_sys;
   let mut header = [0u8; 15];
   let sz = stream_Read((*p_demux).s, &mut header);
   if sz < 15 {
     if sz == 4 {
-      vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "got %d bytes, end of stream?\0", sz);
+      vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "got {} bytes, end of stream?", sz);
       return 0;
     } else {
-      vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "could not read header, got: %d bytes\0", sz);
+      vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "could not read header, got: {} bytes", sz);
       return -1;
     }
   }
 
   let r = nom::be_u32(&header[..4]);
   if let nom::IResult::Done(_i, _o) = r {
-    //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "previous tag size: %d\0", o);
+    //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "previous tag size: {}", o);
   } else {
-    vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "could not parse\0");
+    vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "could not parse");
     return -1;
   }
 
   let r = flavors::parser::tag_header(&header[4..]);
   match r {
     nom::IResult::Error(_) => {
-      vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "tag_header error\0");
+      vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "tag_header error");
       return -1;
     },
     nom::IResult::Incomplete(_) => {
-      vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "tag_header incomplete\0");
+      vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "tag_header incomplete");
       return -1;
     },
     _ => {}
@@ -242,7 +241,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
   if let nom::IResult::Done(_remaining, header) = r {
   vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME,
-           b"tag_header: type=%d,\tsize=%d,\ttimestamp:%d,\tstream_id: %d\0",
+           "tag_header: type={},\tsize={},\ttimestamp:{},\tstream_id: {}",
            header.tag_type as uint32_t, header.data_size, header.timestamp, header.stream_id);
 
     (*p_sys).i_pos += 15;
@@ -250,9 +249,9 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
     match header.tag_type {
       flavors::parser::TagType::Audio => {
-        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "audio\0");
+        vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "audio");
         /*if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"advancing %d bytes\n\0",
+          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"advancing {} bytes\n",
                    header.data_size);
         }
         */
@@ -260,20 +259,20 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         let sz = stream_Read((*p_demux).s, &mut v_header);
         if sz < 1 {
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME,
-                   b"could not read audio header, got: %d bytes\0", sz);
+                   "could not read audio header, got: {} bytes", sz);
           return -1;
         }
         if let nom::IResult::Done(_, vheader) = flavors::parser::audio_data_header(&v_header) {
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME,
-                   "audio format: %s, rate: %s, size: %s, type: %s",
-                   format!("{:?}", vheader.sound_format).to_c(),
-                   format!("{:?}", vheader.sound_rate).to_c(),
-                   format!("{:?}", vheader.sound_size).to_c(),
-                   format!("{:?}", vheader.sound_type).to_c());
+                   "audio format: {:?}, rate: {:?}, size: {:?}, type: {:?}",
+                   vheader.sound_format,
+                   vheader.sound_rate,
+                   vheader.sound_size,
+                   vheader.sound_type);
 
           let p_block: *mut block_t = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
           if p_block == 0 as *mut block_t {
-            vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"could not allocate block\0");
+            vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "could not allocate block");
             return -1;
           }
 
@@ -316,13 +315,13 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           }, (*p_block).i_pts);
           es_out_Send((*p_demux).out, (*p_sys).audio_es_id, p_block);
 
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"audio block of size %d sent\n\0",
+          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "audio block of size {} sent\n",
                    header.data_size - 1);
           return 1;
 
           /*
         if stream_Seek((*p_demux).s, (header.data_size -1) as uint64_t) {
-          //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "advancing %d bytes\n\0",
+          //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "advancing {} bytes\n",
                      header.data_size);
         }
           return 1;
@@ -331,30 +330,30 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         return -1;
       },
       flavors::parser::TagType::Script => {
-        //vlc_Log!(p_demux, LogType::Info, b"inrustwetrust\0", "SCRIPT\0");
+        //vlc_Log!(p_demux, LogType::Info, b"inrustwetrust\0", "SCRIPT");
         if stream_Seek((*p_demux).s, header.data_size as uint64_t) {
-          //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "advancing %d bytes\n\0",
+          //vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "advancing {} bytes\n",
           //         header.data_size);
         }
         return 1;
       },
       flavors::parser::TagType::Video => {
-        //vlc_Log!(p_demux, LogType::Info, b"inrustwetrust\0", "video\0");
+        //vlc_Log!(p_demux, LogType::Info, b"inrustwetrust\0", "video");
         let mut v_header = [0u8; 1];
         let sz = stream_Read((*p_demux).s, &mut v_header);
         if sz < 1 {
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME,
-                   b"could not read header, got: %d bytes\0", sz);
+                   "could not read header, got: {} bytes", sz);
           return -1;
         }
         if let nom::IResult::Done(_, vheader) = flavors::parser::video_data_header(&v_header) {
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"frame type: %d, codec id: %d\0",
+          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "frame type: {:?}, codec id: {:?}",
                    vheader.frame_type, vheader.codec_id);
 
 
           let p_block: *mut block_t = stream_Block((*p_demux).s, (header.data_size - 1) as size_t);
           if p_block == 0 as *mut block_t {
-            vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"could not allocate block\0");
+            vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "could not allocate block");
             return -1;
           }
 
@@ -379,7 +378,7 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           }, (*p_block).i_pts);
           es_out_Send((*p_demux).out, (*p_sys).video_es_id, p_block);
 
-          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"video block of size %d sent\n\0",
+          vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "video block of size {} sent\n",
                    header.data_size - 1);
           return 1;
         }
@@ -390,19 +389,19 @@ unsafe extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
   }
 
   //let i_pos = stream_Tell((*p_demux).s);
-  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"new position: %d\0", (*p_sys).i_pos);
+  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "new position: {}", (*p_sys).i_pos);
 
   -1
 }
 
 unsafe extern "C" fn control(p_demux: *mut demux_t<demux_sys_t>, i_query: c_int,
                              args: *const va_list) -> c_int {
-  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"in CONTROL\0");
+  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in CONTROL");
   let p_sys = (*p_demux).p_sys;
   let res = demux_vaControlHelper((*p_demux).s, (*p_sys).i_pos as int64_t,
                                   ((*p_sys).i_pos + (*p_sys).i_size) as int64_t,
                                      0, 0, i_query, args);
-  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, b"CONTROL res: %d\0", res);
+  vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "CONTROL res: {}", res);
 
   res
 }
