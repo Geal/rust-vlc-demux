@@ -11,9 +11,8 @@ use ffi::{self, stream_t, es_format_category_e};
 pub fn stream_Peek<'a>(stream: *mut stream_t, size: size_t) -> &'a[u8] {
   let mut buf = 0 as *const uint8_t;
   unsafe {
-    //let sz = ffi::stream_Peek(stream, buf as *mut *const u8, size);
     let sz = ffi::stream_Peek(stream, &mut buf, size);
-    //FIXME: what if returned sz is negative? (error)
+    // FIXME: what if returned sz is negative? (error)
     if sz > 0 {
       from_raw_parts(buf, sz as usize)
     } else {
@@ -97,5 +96,3 @@ macro_rules! vlc_Log {
     vlc::Log($demux, $priority, $module, &formatted)
   }};
 }
-
-

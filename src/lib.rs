@@ -164,7 +164,6 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
       return 0;
     },
-
   }
 
   vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in rust function OPEN {}\n", 42);
@@ -235,6 +234,7 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
         if sz < 1 {
           return -1;
         }
+
         if let nom::IResult::Done(_, audio_header) = flavors::parser::audio_data_header(&a_header) {
           vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME,
                    "audio format: {:?}, rate: {:?}, size: {:?}, type: {:?}",
@@ -352,14 +352,11 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
                    header.data_size - 1);
           return 1;
         }
-
       },
-
     }
   }
 
   vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "new position: {}", p_sys.i_pos);
-
   -1
 }
 
