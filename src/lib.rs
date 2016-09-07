@@ -1,5 +1,3 @@
-#![feature(lang_items)]
-#![feature(start)]
 #![allow(non_camel_case_types, dead_code)]
 
 extern crate nom;
