@@ -90,8 +90,8 @@ pub struct demux_t<T> {
 
   pub s:               *mut stream_t,
   pub out:             *mut es_out_t,
-  pub pf_demux:        Option<unsafe extern "C" fn(*mut demux_t<T>) -> c_int>,
-  pub pf_control:      Option<unsafe extern "C" fn(*mut demux_t<T>, c_int, *const va_list) -> c_int>,
+  pub pf_demux:        Option<extern "C" fn(*mut demux_t<T>) -> c_int>,
+  pub pf_control:      Option<extern "C" fn(*mut demux_t<T>, c_int, *const va_list) -> c_int>,
 
   // 'info' nested struct. Can we do that with Rust FFI?
   pub i_update:        c_uint,
