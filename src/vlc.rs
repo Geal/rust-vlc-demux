@@ -8,6 +8,54 @@ pub use ffi::{VLCModuleProperties,vlc_Log,demux_t,vlc_object_t, va_list, block_t
 
 use ffi::{self, stream_t, es_format_category_e};
 
+macro_rules! vlc_module {
+  ($fn_name:ident, set_name($name:expr) set_description($desc:expr) set_capability($cap:expr, $score:expr) set_callbacks($open:expr, $close:expr)) => (
+    #[allow(non_snake_case)]
+    #[no_mangle]
+    pub unsafe extern fn $fn_name(vlc_set: unsafe extern fn(*mut c_void, *mut c_void, c_int, ...)
+                                  -> c_int,
+                                  opaque: *mut c_void) -> c_int {
+      let module: *mut c_void = 0 as *mut c_void;
+
+      if vlc_set(opaque, 0 as *mut c_void, VLCModuleProperties::VLC_MODULE_CREATE as i32,
+      &module) != 0 {
+        return -1;
+      }
+
+      if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_NAME as i32,
+      concat!($name, "\0").as_ptr()) != 0 {
+        return -1;
+      }
+
+      if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_DESCRIPTION as i32,
+      concat!($desc, "\0").as_ptr()) != 0 {
+        return -1;
+      }
+
+      if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CAPABILITY as i32,
+      concat!($cap, "\0").as_ptr()) != 0 {
+        return -1;
+      }
+
+      if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_SCORE as i32, $score) != 0 {
+        return -1;
+      }
+
+      let p_open: extern "C" fn(*mut demux_t<demux_sys_t>) -> c_int =
+        transmute($open as extern "C" fn(_) -> c_int);
+      if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CB_OPEN as i32, p_open) != 0 {
+        return -1;
+      }
+
+      let p_close: extern "C" fn(*mut demux_t<demux_sys_t>) = transmute($close as extern "C" fn(_));
+      if vlc_set(opaque, module, VLCModuleProperties::VLC_MODULE_CB_CLOSE as i32, p_close) != 0 {
+        return -1;
+      }
+      0
+    }
+  );
+}
+
 pub fn stream_Peek<'a>(stream: *mut stream_t, size: size_t) -> &'a[u8] {
   let mut buf = 0 as *const uint8_t;
   unsafe {
