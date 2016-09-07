@@ -1,32 +1,24 @@
 #![allow(non_camel_case_types, dead_code)]
 
+extern crate libc;
+extern crate core;
 extern crate nom;
 extern crate flavors;
-extern crate core;
 #[macro_use] extern crate va_list as rs_va_list;
 
 #[macro_use]
-mod vlc;
+extern crate vlc_module;
 
-#[macro_use]
-mod ffi;
-
-mod traits;
-mod types;
-
-extern crate libc;
 use libc::{size_t, c_int, c_void, c_uint, uint32_t, uint64_t, int64_t};
 use std::boxed::Box;
 use std::fmt;
 
 use std::mem::{transmute,zeroed};
-use vlc::{VLCModuleProperties, LogType, demux_t, va_list, block_t, mtime_t, es_format_t,
+use vlc_module::vlc::{VLCModuleProperties, LogType, demux_t, va_list, block_t, mtime_t, es_format_t,
           vlc_fourcc_t, es_out_id_t};
-use vlc::{stream_Peek, stream_Seek, stream_Read, stream_Block,
+use vlc_module::vlc::{stream_Peek, stream_Seek, stream_Read, stream_Block,
           demux_vaControlHelper, es_format_Init, es_out_Send, es_out_Add};
-
-pub use traits::*;
-pub use types::*;
+use vlc_module::ffi::es_format_category_e;
 
 const PLUGIN_NAME: &'static [u8; 14] = b"inrustwetrust\0";
 
@@ -180,7 +172,7 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
           if ! p_sys.audio_initialized {
             es_format_Init(&mut p_sys.audio_es_format,
-                           ffi::es_format_category_e::AUDIO_ES,
+                           es_format_category_e::AUDIO_ES,
                            audio_codec_id_to_fourcc(audio_header.sound_format));
             p_sys.audio_es_format.audio.i_channels = match audio_header.sound_type {
               flavors::parser::SoundType::SndMono   => 1,
@@ -254,7 +246,7 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 
           if ! p_sys.video_initialized {
             es_format_Init(&mut p_sys.video_es_format,
-                           ffi::es_format_category_e::VIDEO_ES,
+                           es_format_category_e::VIDEO_ES,
                            video_codec_id_to_fourcc(vheader.codec_id));
 
             p_sys.video_es_id = es_out_Add(p_demux.out, &mut p_sys.video_es_format);
