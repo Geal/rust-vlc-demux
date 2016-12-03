@@ -14,11 +14,12 @@ use std::boxed::Box;
 use std::fmt;
 
 use std::mem::{transmute,zeroed};
-use vlc_module::vlc::{VLCModuleProperties, LogType, demux_t, va_list, block_t, mtime_t, es_format_t,
+use vlc_module::vlc::{LogType, demux_t, va_list, block_t, mtime_t, es_format_t,
           vlc_fourcc_t, es_out_id_t};
 use vlc_module::vlc::{stream_Peek, stream_Seek, stream_Read, stream_Block,
-          demux_vaControlHelper, es_format_Init, es_out_Send, es_out_Add};
-use vlc_module::ffi::es_format_category_e;
+          demux_vaControlHelper, es_format_Init, es_out_Send, es_out_Add,
+          VLC_TS_0};
+use vlc_module::ffi::{es_format_category_e,es_out_query_e};
 
 const PLUGIN_NAME: &'static [u8; 14] = b"inrustwetrust\0";
 
@@ -81,10 +82,10 @@ extern "C" fn open(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             i_size: 0,
             video_initialized: false,
             video_es_format: unsafe { zeroed() },
-            video_es_id: 0 as *mut c_void,
+            video_es_id: 0 as *mut es_out_id_t,
             audio_initialized: false,
             audio_es_format: unsafe { zeroed() },
-            audio_es_id: 0 as *mut c_void,
+            audio_es_id: 0 as *mut es_out_id_t,
           }
           ));
       vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "p_sys: {:?}", p_demux.p_sys);
@@ -191,7 +192,7 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
             };
             p_sys.audio_es_format.i_bitrate =
               (p_sys.video_es_format.audio.i_rate * p_sys.video_es_format
-                                                               .audio.i_bitspersample) as c_int;
+                                                               .audio.i_bitspersample) as c_uint;
 
             p_sys.audio_es_id = es_out_Add(p_demux.out, &mut p_sys.audio_es_format);
             p_sys.audio_initialized = true;
@@ -204,17 +205,14 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           }
           let p_block = unsafe { &mut(*p_block) };
 
-          //let VLC_TS_INVALID: mtime_t = 0;
-          let VLC_TS_0:       mtime_t = 1;
           p_block.i_dts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
           p_block.i_pts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
 
           let out_ref = p_demux.out;
           unsafe {
             to_va_list!(move |v: rs_va_list::va_list| {
-              let ES_OUT_SET_PCR = 6;
-              let pf_control: fn(*mut c_void, c_int, rs_va_list::va_list) = transmute((*out_ref).pf_control);
-              pf_control(out_ref as *mut c_void, ES_OUT_SET_PCR, v);
+              let pf_control: fn(*mut c_void, es_out_query_e, rs_va_list::va_list) = transmute((*out_ref).pf_control);
+              pf_control(out_ref as *mut c_void, es_out_query_e::ES_OUT_SET_PCR, v);
             }, p_block.i_pts);
           }
           es_out_Send(p_demux.out, p_sys.audio_es_id, p_block);
@@ -260,17 +258,14 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
           }
           let p_block = unsafe { &mut(*p_block) };
 
-          //let VLC_TS_INVALID: mtime_t = 0;
-          let VLC_TS_0:       mtime_t = 1;
           p_block.i_dts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
           p_block.i_pts = VLC_TS_0 + (header.timestamp as mtime_t *1000);
 
           let out_ref = p_demux.out;
           unsafe {
             to_va_list!(move |v: rs_va_list::va_list| {
-              let ES_OUT_SET_PCR = 6;
-              let pf_control: fn(*mut c_void, c_int, rs_va_list::va_list) = transmute((*out_ref).pf_control);
-              pf_control(out_ref as *mut c_void, ES_OUT_SET_PCR, v);
+              let pf_control: fn(*mut c_void, es_out_query_e, rs_va_list::va_list) = transmute((*out_ref).pf_control);
+              pf_control(out_ref as *mut c_void, es_out_query_e::ES_OUT_SET_PCR, v);
             }, p_block.i_pts);
           }
           es_out_Send(p_demux.out, p_sys.video_es_id, p_block);
@@ -288,7 +283,7 @@ extern "C" fn demux(p_demux: *mut demux_t<demux_sys_t>) -> c_int {
 }
 
 extern "C" fn control(p_demux: *mut demux_t<demux_sys_t>, i_query: c_int,
-                             args: *const va_list) -> c_int {
+                             args: va_list) -> c_int {
   let p_demux = unsafe { &mut (*p_demux) };
   vlc_Log!(p_demux, LogType::Info, PLUGIN_NAME, "in CONTROL");
   let p_sys = unsafe { &mut (*p_demux.p_sys) };
